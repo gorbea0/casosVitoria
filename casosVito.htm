@@ -1,0 +1,2879 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Legionelosis · 3D + riesgos + buscadores</title>
+
+<link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet">
+<script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+
+<style>
+  html,body,#map{height:100%;margin:0}
+  .panel{
+    position:absolute;top:10px;left:10px;z-index:10;background:#fff;padding:10px 12px;border-radius:12px;
+    box-shadow:0 8px 24px rgba(0,0,0,.18);font:14px/1.25 system-ui,Segoe UI,Roboto,sans-serif;max-width:360px
+  }
+  .sec{font-weight:700;margin:.2rem 0 .4rem}
+  .row{display:flex;gap:.5rem;align-items:center;margin:.35rem 0}
+  .row input[type="text"]{flex:1;padding:6px 8px;border:1px solid #e5e7eb;border-radius:8px}
+  .btn{padding:6px 10px;border-radius:8px;border:1px solid #e5e7eb;background:#f3f4f6;cursor:pointer}
+  .btn:hover{background:#e5e7eb}
+  /* Acordeón + scroll */
+  #yearsWrap{max-height:45vh;overflow-y:auto;border-top:1px solid #eee;padding-top:.35rem}
+  .acc-h{width:100%;display:flex;justify-content:space-between;align-items:center;background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:6px 10px;margin:.35rem 0 .2rem;cursor:pointer;font-weight:600}
+  .acc-h .chev{transition:transform .15s ease}
+  .acc-h[aria-expanded="false"] .chev{transform:rotate(-90deg)}
+  .acc-b{padding:.25rem}
+  .case-li{display:flex;align-items:center;gap:.4rem;margin:.12rem 0}
+  .legend{position:absolute;top:10px;right:64px;z-index:10;background:#fff;padding:8px 10px;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.18);font:13px}
+  .tip{font-size:12px;color:#6b7280}
+  
+  
+  
+  /* Encabezado de sección colapsable */
+.sec-h{
+  width:100%;
+  display:flex; justify-content:space-between; align-items:center;
+  background:#f8fafc; border:1px solid #e5e7eb; border-radius:10px;
+  padding:8px 10px; margin:.45rem 0 .25rem; cursor:pointer; font-weight:700
+}
+.sec-h .chev{ transition:transform .15s ease }
+.sec-h[aria-expanded="false"] .chev{ transform:rotate(-90deg) }
+
+/* Cuerpo: se oculta/enseña solo con CSS según aria-expanded */
+.sec-b{ padding:.25rem 0 }
+.sec-h + .sec-b{ display:block }
+.sec-h[aria-expanded="false"] + .sec-b{ display:none }
+
+
+
+
+/* ===== Modal & tabla ===== */
+#riskModalBackdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;z-index:9998}
+#riskModal{
+  position:fixed;
+  inset:auto 3% 3% 3%; /* márgenes más estrechos */
+  top:3%;
+  background:#fff;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.25);
+  display:none;z-index:9999;max-height:94vh;overflow:auto;
+  font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif
+}
+#riskModal header{position:sticky;top:0;background:#0f172a;color:#fff;padding:12px 16px;border-top-left-radius:14px;border-top-right-radius:14px;z-index:2}
+#riskModal header h3{margin:0;font-size:18px}
+#riskModal .close{cursor:pointer;font-size:18px;border:none;background:transparent;color:#fff;margin-left:auto}
+#riskModal .content{padding:12px 16px}
+#riskModal .controls{display:grid;grid-template-columns:repeat(12,1fr);gap:8px;align-items:end;margin-bottom:8px}
+#riskModal .controls .field{display:flex;flex-direction:column;grid-column:span 3}
+#riskModal .controls .field.small{grid-column:span 2}
+#riskModal .controls label{font-size:12px;color:#334155;margin-bottom:4px}
+#riskModal .controls input[type="number"],
+#riskModal .controls select,
+#riskModal .controls input[type="text"]{padding:6px 8px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px}
+#riskModal .controls .hint{font-size:11px;color:#64748b;margin-top:2px}
+#riskModal .controls .btn{padding:8px 10px;border:none;border-radius:10px;background:#1d4ed8;color:#fff;cursor:pointer}
+#riskModal .controls .btn.secondary{background:#0ea5e9}
+#riskModal .controls .btn.ghost{background:#e2e8f0;color:#0f172a}
+
+#riskModal table{width:100%;border-collapse:separate;border-spacing:0 4px} /* menos aire vertical */
+#riskModal thead th{position:sticky;top:56px;background:#f8fafc;padding:8px 10px;font-size:12px;color:#475569;border-bottom:1px solid #e2e8f0;z-index:1}
+#riskModal tbody tr{box-shadow:0 1px 0 #e2e8f0}
+#riskModal td{padding:6px 8px;font-size:13px;white-space:nowrap} /* celdas más compactas */
+
+.badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;border:1px solid #cbd5e1;background:#f1f5f9}
+.badge.torre{background:#eef2ff;border-color:#c7d2fe}
+.badge.fuente{background:#ecfeff;border-color:#a5f3fc}
+.badge.lavacoches{background:#fef9c3;border-color:#fde68a}
+
+.cell-heat{border-radius:8px;padding:4px 6px;display:inline-block;min-width:64px;text-align:right} /* más estrecha */
+
+/* ===== Gráficos ===== */
+#charts{display:grid;grid-template-columns:1fr;gap:10px;margin-top:8px} /* 1 columna por defecto */
+@media (min-width:1100px){
+  #charts{grid-template-columns:1fr 1fr} /* 2 columnas en pantallas anchas */
+}
+.chart-card{border:1px solid #e2e8f0;border-radius:12px;padding:10px;height:280px}
+.chart-card h4{margin:0 0 6px 0;font-size:14px;color:#0f172a}
+.chart-card canvas{width:100% !important;height:220px !important} /* altura fija para Chart.js */
+
+/* ===== Descripción y avanzados ===== */
+#metricDesc{margin-top:8px;font-size:13px;color:#334155;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:10px}
+#advBox{margin-top:6px;border-top:1px dashed #e2e8f0;padding-top:6px;display:none}
+#toggleAdv{font-size:12px;color:#334155;cursor:pointer;text-decoration:underline;background:none;border:none;padding:0;margin:0}
+
+
+/* que el ancla no quede tapada por el header sticky */
+#charts{ scroll-margin-top: 72px; }
+
+/* pequeño destello al llegar */
+@keyframes chartsFlash {
+  0%{ box-shadow: 0 0 0 0 rgba(59,130,246,0); }
+  40%{ box-shadow: 0 0 0 4px rgba(59,130,246,.35) inset; }
+  100%{ box-shadow: 0 0 0 0 rgba(59,130,246,0); }
+}
+#charts.flash-highlight{ animation: chartsFlash 1.1s ease-out 1; border-radius:12px; }
+
+/* Bloque avanzado en grid compacto */
+#advBox{ display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 300px)); gap:10px; }
+/* Resetear el span heredado desde .controls */
+#advBox .field{ grid-column: span 1 !important; }
+/* Para los dos campos largos (anillos/pesos) */
+#advBox .field.wide{ grid-column: span 2 !important; }
+
+
+</style>
+</head>
+<body>
+
+
+
+
+
+<div id="map"></div>
+
+<div class="panel">
+
+
+<div class="coll">
+
+<button id="openRiskModalBtn" class="btn" style="position:absolute;z-index:8888;top:10px;right:10px;padding:8px 10px;border:none;border-radius:10px;background:#0ea5e9;color:#fff;cursor:pointer">Métricas de riesgo</button>
+
+
+  <button class="sec-h" id="secMapBtn" aria-expanded="true">
+    <span>🗺️ Mapa base</span><span class="chev">▾</span>
+  </button>
+  <div class="sec-b" id="secMapBody">
+    <div class="row">
+      <select id="basemap">
+        <option value="osm">OSM (normal)</option>
+        <option value="light">Sencillo (Carto Light)</option>
+        <option value="sat">Satélite (Esri)</option>
+      </select>
+      <button class="btn" id="fit">Encajar</button>
+    </div>
+
+    <div class="sec">🧭 Vista 3D</div>
+    <div class="row"><label style="width:6rem">Inclinación</label><input id="pitch" type="range" min="0" max="70" value="55" style="flex:1"></div>
+    <div class="row"><label style="width:6rem">Rotación</label><input id="bearing" type="range" min="0" max="360" value="330" style="flex:1"></div>
+    <div class="row"><label><input id="chkBlds" type="checkbox" checked> Edificios 3D</label></div>
+
+    <div class="sec">🔎 Buscar calle/dirección</div>
+    <div class="row"><input id="q" type="text" placeholder="C/ …, Vitoria"><button class="btn" id="go">Buscar</button></div>
+  </div>
+</div>
+
+
+<div class="coll">
+  <button class="sec-h" id="secRiskBtn" aria-expanded="true">
+    <span>🏷️ Puntos de riesgo</span><span class="chev">▾</span>
+  </button>
+  <div class="sec-b" id="secRiskBody">
+    <div class="row"><label><input id="riskAll" type="checkbox" checked> Todos</label></div>
+    <div class="row"><label><input id="riskFuente" type="checkbox" checked> ⛲ Fuentes</label></div>
+    <div class="row"><label><input id="riskLava"   type="checkbox" checked> 🧽 Lavacoches</label></div>
+    <div class="row"><label><input id="riskTorre"  type="checkbox" checked> 🏢 Torres</label></div>
+    <div class="row">
+      <input id="riskQ" list="riskNames" type="text" placeholder="Buscar punto de riesgo…">
+      <datalist id="riskNames"></datalist>
+      <button class="btn" id="riskGo">Ir</button>
+    </div>
+  </div>
+</div>
+
+
+<div class="coll">
+  <button class="sec-h" id="secCasesBtn" aria-expanded="false"> <!-- colapsada por defecto -->
+    <span>☠️ Casos (on/off)</span><span class="chev">▾</span>
+  </button>
+  <div class="sec-b" id="secCasesBody">
+    <div class="row"><label><input id="chkAll" type="checkbox"> Todos los casos</label></div>
+    <div class="row"><label><input id="chkLines" type="checkbox" checked> Conectar puntos</label></div>
+    <div id="yearsWrap"><div id="years"></div></div>
+    <div class="tip">Popup: ID · fecha · contagio aprox. (−15 días). Radio: 400 m.</div>
+  </div>
+</div>
+
+
+ 
+  
+  
+  
+</div>
+
+<div class="legend">Casos legionella</div>
+
+
+
+
+<div id="riskModalBackdrop"></div>
+<div id="riskModal" role="dialog" aria-modal="true" aria-labelledby="riskModalTitle">
+  <header>
+    <div style="display:flex;gap:10px;align-items:center">
+      <h3 id="riskModalTitle">Métricas de proximidad a casos por punto de riesgo</h3>
+      <button class="close" id="closeRiskModal" title="Cerrar">✕</button>
+    </div>
+  </header>
+  <div class="content">
+    <div class="controls">
+      <div class="field small">
+        <label>Métrica</label>
+        <select id="metricSelect">
+          <option value="exp">Exponencial</option>
+          <option value="gauss">Gaussiana</option>
+          <option value="pow">Gravity light</option>
+          <option value="idw">IDW acotado</option>
+          <option value="knnmean">Media k-NN</option>
+          <option value="krad">Radio k-ésimo</option>
+          <option value="countR">Conteo ≤ R</option>
+          <option value="rings">Multianillo</option>
+        </select>
+      </div>
+      <div class="field small">
+        <label>Categorías</label>
+        <select id="catSelect">
+          <option value="all">Todas</option>
+          <option value="fuente">Fuentes</option>
+          <option value="torre">Torres</option>
+          <option value="lavacoches">Lavacoches</option>
+        </select>
+      </div>
+      <div class="field small">
+        <label>Año desde</label>
+        <select id="yearFrom"></select>
+      </div>
+      <div class="field small">
+        <label>Año hasta</label>
+        <select id="yearTo"></select>
+      </div>
+
+
+<div class="field small">
+  <label>Evolución (agregación)</label>
+  <select id="aggMode">
+    <option value="sum">Suma total</option>
+    <option value="meanRisk">Media por riesgo</option>
+    <option value="meanCase">Media por caso</option>
+    <option value="sumTopN">Suma Top-N</option>
+  </select>
+ 
+</div>
+
+<div class="field small">
+  <label>Riesgo individual</label>
+  <select id="riskSelect">
+    <option value="">— Todos —</option>
+  </select>
+
+</div>
+
+
+
+
+
+
+      <div class="field" style="grid-column:span 12">
+         <span><button id="recalcBtn" class="btn">Recalcular</button>
+       <button id="dlCsvBtn" class="btn secondary">Descargar CSV</button>
+        <button id="toggleAdv" class="btn ghost">Parámetros avanzados</button><button id="graficos" class="btn">Gráficos</button> </span>
+      </div>
+
+      <!-- avanzados -->
+<div id="advBox" style="grid-column:span 12">
+  <div class="field wide">
+    <label>Anillos (m, separados por “,”)</label>
+    <input id="paramRings" type="text" value="600,1200,1700,2500">
+  </div>
+
+  <div class="field wide">
+    <label>Pesos anillos (w, “,”)</label>
+    <input id="paramWeights" type="text" value="1,0.7,0.4,0.2">
+  </div>
+
+  <div class="field">
+    <label>Top N en gráfico de barras</label>
+    <input id="paramTopN" type="number" value="12" min="5" step="1">
+  </div>
+
+  <div class="field"><label>σ (exp) m</label><input id="paramSigmaExp" type="number" value="850" min="10" step="10"></div>
+  <div class="field"><label>σ (gauss) m</label><input id="paramSigmaGauss" type="number" value="850" min="10" step="10"></div>
+  <div class="field"><label>α (potencia)</label><input id="paramAlpha" type="number" value="1.2" min="0.1" step="0.1"></div>
+  <div class="field"><label>β (IDW)</label><input id="paramBeta" type="number" value="1.0" min="0.1" step="0.1"></div>
+  <div class="field"><label>R (IDW/Conteo) m</label><input id="paramR" type="number" value="1700" min="10" step="10"></div>
+  <div class="field"><label>k (k-NN)</label><input id="paramK" type="number" value="3" min="1" step="1"></div>
+</div>
+
+
+    </div>
+
+    <div style="overflow:auto">
+      <table id="riskTable">
+        <thead>
+          <tr>
+            <th>Riesgo</th>
+            <th>Categoría</th>
+            <th>Casos usados</th>
+            <th>Min (m)</th>
+            <th data-m="exp">Exponencial</th>
+            <th data-m="gauss">Gaussiana</th>
+            <th data-m="pow">Potencia</th>
+            <th data-m="idw">IDW acotado</th>
+            <th data-m="knnmean">Media k-NN (m)</th>
+            <th data-m="krad">Radio k (m)</th>
+            <th data-m="countR">≤R (n)</th>
+            <th data-m="rings">Multianillo</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div id="charts">
+      <div class="chart-card">
+        <h4 id="barTitle">Top riesgos por métrica</h4>
+        <canvas id="barChart" height="180"></canvas>
+      </div>
+      <div class="chart-card">
+        <h4 id="lineTitle">Evolución anual</h4>
+        <canvas id="lineChart" height="180"></canvas>
+      </div>
+    </div>
+
+    <div id="metricDesc"></div>
+  </div>
+</div>
+
+ddadadadad
+
+
+
+
+
+
+
+<script>
+// =================== CONFIG ===================
+const BUILDINGS_URL = 'https://raw.githubusercontent.com/gorbea0/casosVitoria/main/vitoria.geojson';
+
+// ======== Ejemplo de casos (puedes editar) =========
+window.CASES_JSON = window.CASES_JSON || [
+  { id:"C-101", date:"2022-08-17", coords:[[42.851,-2.681]] },
+  { id:"C-102", date:"2023-09-03", coords:[[42.848,-2.676],[42.853,-2.672]] },
+  { id:"C-103", date:"2022-08-17", coords:[[42.843,-2.679]] },
+  { id:"C-104", date:"2023-10-05", coords:[[42.846,-2.670]] },
+  { id:"C-105", date:"2024-03-19", coords:[[42.8515,-2.6740]] },
+  { id:"C-106", date:"2024-05-11", coords:[[42.844,-2.668]] },
+  { id:"C-107", date:"2022-11-19", coords:[[42.839,-2.674]] },
+  { id:"C-108", date:"2024-03-05", coords:[[42.854,-2.666]] },
+  { id:"C-109", date:"2023-07-12", coords:[[42.858,-2.686]] },
+  // ejemplo multipunto con nombres:
+  { id:"C-200", date:"2025-02-10", places:[
+      {name:"Casa",    lat:42.857, lng:-2.68},
+      {name:"Trabajo", lat:42.861, lng:-2.672},
+      {name:"Paseo",   lat:42.852, lng:-2.689}
+  ]},
+  { id:"012507", date:"1-9-2025", coords:[[42.85734489500092,-2.679122517354255]] }
+];
+
+// ======== Puntos de riesgo  =========
+
+
+
+	window.samplingPointjson = window.samplingPointjson || {
+  "D-1001": {
+    "nombre": "CC Zabalgana ACS",
+    "tipo": "polideportivo",
+    "subtipo": "ACS"
+  },
+  "D-1018": {
+    "nombre": "Fuente orn La Rosaleda de Arriaga",
+    "tipo": "Fuente ornamental",
+    "subtipo": "Fuente ornamental",
+	"coords":[42.8606933852556, -2.681133443611]
+  },
+  "D-1019": {
+    "nombre": "Residencia Roure ACS",
+    "tipo": "Residencia",
+    "subtipo": "ACS"
+  },
+  "D-1030": {
+    "nombre": "Camión cisterna limpieza",
+    "tipo": "VLV",
+    "subtipo": "VLV"
+  },
+  "D-1031": {
+    "nombre": "Barredora con aerosolización",
+    "tipo": "VLV",
+    "subtipo": "VLV"
+  },
+  "D-1032": {
+    "nombre": "Residencia Lovi",
+    "tipo": "Residencia",
+    "subtipo": "ACS"
+  },
+  "D-1033": {
+    "nombre": "Fuente ornamental Pza Sta Barbara grulla",
+    "tipo": "Fuente ornamental",
+    "subtipo": "Fuente ornamental",
+	"coords":[42.84522965543591, -2.66672613884827]
+  },
+  "D-1034": {
+    "nombre": "Fuente Pza Simón Bolivar",
+    "tipo": "Fuente ornamental",
+    "subtipo": "Fuente ornamental",
+	"coords":[42.848548846772395, -2.66269560942619]
+  },
+  "D-1037": {
+    "nombre": "ES Gorbea Urartea",
+    "tipo": "Gasolinera",
+    "subtipo": "lavacoches",
+	"coords":[42.86385285133459, -2.7131673398750]
+  },
+  "D-1038": {
+    "nombre": "ES Foronda lavacoches",
+    "tipo": "Gasolinera",
+    "subtipo": "lavacoches",
+	"coords":[42.895869420260155, -2.70190084230467]
+  },
+  "D-1039": {
+    "nombre": "Centro de dia Blas de Otero",
+    "tipo": "Residencia",
+    "subtipo": "ACS"
+  },
+  "D-1040": {
+    "nombre": "EI Zaramaga ACS",
+    "tipo": "Escuela infantil",
+    "subtipo": "ACS"
+  },
+  "D-1041": {
+    "nombre": "Polideportivo Aranako",
+    "tipo": "Polideportivo",
+    "subtipo": "ACS"
+  },
+  "D-1042": {
+    "nombre": "CP Santa LUCIA ACS",
+    "tipo": "Escuela infantil",
+    "subtipo": "ACS"
+  },
+  "D-1043": {
+    "nombre": "Ceip Mariturri ACS",
+    "tipo": "Escuela infantil",
+    "subtipo": "ACS"
+  },
+  "D-1044": {
+    "nombre": "CEIP Angel Ganivet ACS",
+    "tipo": "Escuela infantil",
+    "subtipo": "ACS"
+  },
+  "D-1045": {
+    "nombre": "CEIP Aldaialde ACS",
+    "tipo": "Escuela infantil",
+    "subtipo": "ACS"
+  },
+  "D-1047": {
+    "nombre": "ACS Polideportivo El Campillo",
+    "tipo": "Polideportivo",
+    "subtipo": "ACS"
+  },
+  "D-1048": {
+    "nombre": "ACS Fronton Abetxuko",
+    "tipo": "Polideportivo",
+    "subtipo": "ACS"
+  },
+  "D-1054": {
+    "nombre": "Hotel Jardines Uleta ACS",
+    "tipo": "Hotel",
+    "subtipo": "ACS"
+  },
+  "D-1057": {
+    "nombre": "ACS Padel Jundiz",
+    "tipo": "Polideportivo privado",
+    "subtipo": "ACS"
+  },
+  "D-1058": {
+    "nombre": "ACS Vivagym",
+    "tipo": "Polideportivo privado",
+    "subtipo": "ACS"
+  },
+  "D-1059": {
+    "nombre": "ACS Padel norte",
+    "tipo": "Polideportivo privado",
+    "subtipo": "ACS"
+  },
+  "D-1060": {
+    "nombre": "Hotel Libere",
+    "tipo": "Hotel",
+    "subtipo": "ACS"
+  },
+  "D-1061": {
+    "nombre": "Residencia Aitona Urederra bi 25",
+    "tipo": "Residencia",
+    "subtipo": "ACS"
+  },
+  "D-1062": {
+    "nombre": "Centro Mayores S Martin AFCH",
+    "tipo": "Residencia",
+    "subtipo": "ACS"
+  },
+  "D-1064": {
+    "nombre": "Hotel Centro Vitoria ACS",
+    "tipo": "Hotel",
+    "subtipo": "ACS"
+  },
+  "D-1066": {
+    "nombre": "Centro de Mayores San Martin ACS",
+    "tipo": "Residencia",
+    "subtipo": "ACS"
+  },
+  "D-1067": {
+    "nombre": "Fuente ornam Monasterio Leyre",
+    "tipo": "Fuente ornamental",
+    "subtipo": "Fuente ornamental",
+	"coords":[42.86468306402665, -2.69745161280294]
+  },
+  "D-1068": {
+    "nombre": "Lavacoches Boulevard",
+    "tipo": "Gasolinera",
+    "subtipo": "lavacoches",
+	"coords":[42.86164072247478, -2.6642590193467246]
+  },
+  "D-1069": {
+    "nombre": "Lavacoches BP Salburua",
+    "tipo": "Gasolinera",
+    "subtipo": "lavacoches",
+	"coords":[42.8563873145512, -2.656798037682]
+  },
+  "D-1070": {
+    "nombre": "Fuente ornamental hegoalde",
+    "tipo": "Fuente ornamental",
+    "subtipo": "Fuente ornamental",
+	"coords":[42.837365773819, -2.666938703225]
+  },
+  "D-1071": {
+    "nombre": "ES Repsol Lavacoches Vda Cantabrico 8",
+    "tipo": "Gasolinera",
+    "subtipo": "lavacoches",
+	"coords":[42.864255534882, -2.6605542376496]
+  },
+  "D-1072": {
+    "nombre": "Olarambe futbol ACS",
+    "tipo": "Campo de futbol",
+    "subtipo": "ACS"
+  },
+  "D-1072-2": {
+    "nombre": "Olaranbe campo futbol vestuarios abajo",
+    "tipo": "Polideportivo",
+    "subtipo": "ACS"
+  },
+  "D-1073": {
+    "nombre": "Fuente ornamental Parque Este Salburua",
+    "tipo": "Fuente ornamental",
+    "subtipo": "Fuente ornamental"
+  },
+  "D-1074": {
+    "nombre": "Fuente ornamental Boulevard Salburua 10",
+    "tipo": "Fuente ornamental",
+    "subtipo": "Fuente ornamental"
+  },
+  "D-1075": {
+    "nombre": "Kirolclub Mendizorrotza ACS",
+    "tipo": "Polideportivo privado",
+    "subtipo": "ACS"
+  },
+  "D-1076": {
+    "nombre": "Gimnasio Fitness Park Vitoria. CC Boulevard",
+    "tipo": "Gimnasio",
+    "subtipo": "ACS"
+  },
+  "D-1077": {
+    "nombre": "Centro 3º edad Arana",
+    "tipo": "Residencia",
+    "subtipo": "ACS"
+  },
+  "D-1079": {
+    "nombre": "Lavacoches Uritiasolo venta estrella",
+    "tipo": "Gasolinera",
+    "subtipo": "lavacoches",
+	"coords":[42.837007718016, -2.65837664748707]
+  },
+  "D-1080": {
+    "nombre": "Lavacoches Iparaguirre",
+    "tipo": "Gasolinera",
+    "subtipo": "lavacoches",
+	"coords":[42.836926036184, -2.65971396580518]
+  },
+  "D-300": {
+    "nombre": "ACS Pabellón Deportivo Mendizorrotza",
+    "tipo": "polideportivo",
+    "subtipo": "ACS"
+  },
+  "D-301": {
+    "nombre": "ACS Polideportivo Aranalde",
+    "tipo": "polideportivo",
+    "subtipo": "ACS"
+  },
+  "D-302-PO": {
+    "nombre": "ACS Polideportivo Abetxuko",
+    "tipo": "polideportivo",
+    "subtipo": "ACS"
+  },
+  "D-302-PI": {
+    "nombre": "ACS Piscinas abetxuko",
+    "tipo": "polideportivo",
+    "subtipo": "ACS"
+  },
+  "D-302": {
+    "nombre": "ACS Piscinas Abetxuko",
+    "tipo": "polideportivo",
+    "subtipo": "ACS"
+  },
+  "D-303": {
+    "nombre": "ACS Polideportivo Ariznavarra",
+    "tipo": "polideportivo",
+    "subtipo": "ACS"
+  },
+  "D-304": {
+    "nombre": "ACS Polideportivo Arriaga",
+    "tipo": "polideportivo",
+    "subtipo": "ACS"
+  },
+  "D-305": {
+    "nombre": "ACS Divino Maestro Colegio",
+    "tipo": "polideportivo",
+    "subtipo": "ACS"
+  },
+  "D-306": {
+    "nombre": "ACS Polideportivo Landazuri",
+    "tipo": "polideportivo",
+    "subtipo": "ACS"
+  },
+  "D-307": {
+    "nombre": "ACS CC Aldave",
+    "tipo": "polideportivo",
+    "subtipo": "ACS"
+  },
+  "D-309": {
+    "nombre": "ACS CC Hegoalde",
+    "tipo": "polideportivo",
+    "subtipo": "ACS"
+  },
+  "D-310": {
+    "nombre": "ACS CC Iparralde",
+    "tipo": "polideportivo",
+    "subtipo": "ACS"
+  },
+  "D-311": {
+    "nombre": "ACS Parque de Gamarra",
+    "tipo": "polideportivo",
+    "subtipo": "ACS"
+  },
+  "D-312": {
+    "nombre": "ACS CC Judizmendi",
+    "tipo": "polideportivo",
+    "subtipo": "ACS"
+  },
+  "D-313": {
+    "nombre": "ACS CC Lakua-Sansomendi",
+    "tipo": "polideportivo",
+    "subtipo": "ACS"
+  },
+  "D-314": {
+    "nombre": "ACS Fundación Estadio",
+    "tipo": "Polideportivo privado",
+    "subtipo": "ACS"
+  },
+  "D-315": {
+    "nombre": "ACS Frontones de Mendizorrotza",
+    "tipo": "polideportivo",
+    "subtipo": "ACS"
+  },
+  "D-316": {
+    "nombre": "ACS Polideportivo San Andrés",
+    "tipo": "polideportivo",
+    "subtipo": "ACS"
+  },
+  "D-317": {
+    "nombre": "ACS Residencia Ancianos Arcaia",
+    "tipo": "Residencia",
+    "subtipo": "ACS"
+  },
+  "D-318": {
+    "nombre": "ACS Complejo Deportivo Betoño",
+    "tipo": "polideportivo",
+    "subtipo": "ACS"
+  },
+  "D-318-1": {
+    "nombre": "Betoño Campo de futbol ACS",
+    "tipo": "Polideportivo privado",
+    "subtipo": "ACS"
+  },
+  "D-318-2": {
+    "nombre": "Betoño vestuarios nuevos",
+    "tipo": "Polideportivo privado",
+    "subtipo": "ACS"
+  },
+  "D-318-3": {
+    "nombre": "Betoño aranako",
+    "tipo": "Polideportivo privado",
+    "subtipo": "ACS"
+  },
+  "D-319": {
+    "nombre": "ACS Piscinas de Mendizorrotza",
+    "tipo": "polideportivo",
+    "subtipo": "ACS"
+  },
+  "D-320": {
+    "nombre": "ACS Residencia Ajuria",
+    "tipo": "residencia",
+    "subtipo": "ACS"
+  },
+  "D-321": {
+    "nombre": "ACS Residencia Hermanitas de los Pobres",
+    "tipo": "residencia",
+    "subtipo": "ACS"
+  },
+  "D-322": {
+    "nombre": "ACS Residencia Juan Pablo I",
+    "tipo": "residencia",
+    "subtipo": "ACS"
+  },
+  "D-323": {
+    "nombre": "ACS Residencia Arana",
+    "tipo": "residencia",
+    "subtipo": "ACS"
+  },
+  "D-324": {
+    "nombre": "ACS Residencia Etxebidea",
+    "tipo": "residencia",
+    "subtipo": "ACS"
+  },
+  "D-325": {
+    "nombre": "ACS Residencia San Prudencio",
+    "tipo": "residencia",
+    "subtipo": "ACS"
+  },
+  "D-326": {
+    "nombre": "ACS Residencia Quavitae Ariznavarra",
+    "tipo": "residencia",
+    "subtipo": "ACS"
+  },
+  "D-328": {
+    "nombre": "ACS Residencia Txagorritxu",
+    "tipo": "residencia",
+    "subtipo": "ACS"
+  },
+  "D-329": {
+    "nombre": "ACS Residencia Metroces",
+    "tipo": "residencia",
+    "subtipo": "ACS"
+  },
+  "D-331": {
+    "nombre": "ACS Hotel Ciudad de Vitoria",
+    "tipo": "Hotel",
+    "subtipo": "ACS"
+  },
+  "D-332": {
+    "nombre": "ACS Hotel Gran H Lakua",
+    "tipo": "Hotel",
+    "subtipo": "ACS"
+  },
+  "D-333": {
+    "nombre": "ACS Hotel Gobeo Park",
+    "tipo": "Hotel",
+    "subtipo": "ACS"
+  },
+  "D-334": {
+    "nombre": "ACS Hotel General Alava",
+    "tipo": "Hotel",
+    "subtipo": "ACS"
+  },
+  "D-335": {
+    "nombre": "ACS Hotel Ruta de Europa",
+    "tipo": "Hotel",
+    "subtipo": "ACS"
+  },
+  "D-336": {
+    "nombre": "ACS Residencia Aurora",
+    "tipo": "Residencia",
+    "subtipo": "ACS"
+  },
+  "D-337": {
+    "nombre": "ACS Residencia Los Arquillos",
+    "tipo": "Residencia",
+    "subtipo": "ACS"
+  },
+  "D-338": {
+    "nombre": "Torre Centro Comercial Boulevard",
+    "tipo": "Centro comercial",
+    "subtipo": "Torre",
+	"coords": [42.861657250, -2.6675392237]
+	
+  },
+  "D-341": {
+    "nombre": "Torre Quavitae Residencia",
+    "tipo": "Residencia",
+    "subtipo": "Torre",
+	"coords": [42.839848710, -2.6955310886]
+	},
+  "D-352": {
+    "nombre": "Torre Dendaraba",
+    "tipo": "Centro comercial",
+    "subtipo": "Torre",
+	"coords": [42.84506716339, -2.66844821933],
+	"email":"h@hidrocontrol.net"
+  },
+  "D-353": {
+    "nombre": "Torre Centro Comercial Lakua",
+    "tipo": "Centro comercial",
+    "subtipo": "Torre"
+  },
+  "D-359": {
+    "nombre": "Torre El Corte Ingles",
+    "tipo": "Centro comercial",
+    "subtipo": "Torre",
+	"coords": [42.84481312339, -2.667879550615]
+  },
+  "D-361": {
+    "nombre": "Torre Edificio Opera",
+    "tipo": "Centro comercial",
+    "subtipo": "Torre",
+	"coords":[42.844118976004, -2.67049272406319],
+	"email":"sonia_lacuesta@hotmail.com"
+  },
+  "D-363": {
+    "nombre": "Torre EDAR de Crispijana",
+    "tipo": "Varios",
+    "subtipo": "Torre",
+	"coords":[42.853361372348644, -2.741892889055],
+	"email":"raul.cerezo@dam-aguas.es"
+  },
+  "D-365": {
+    "nombre": "ACS Residencia los Molinos",
+    "tipo": "residencia",
+    "subtipo": "ACS"
+  },
+  "D-366": {
+    "nombre": "ACS Hotel Almoneda",
+    "tipo": "Hotel",
+    "subtipo": "ACS"
+  },
+  "D-367": {
+    "nombre": "ACS Hotel Amarica",
+    "tipo": "Hotel",
+    "subtipo": "ACS"
+  },
+  "D-368": {
+    "nombre": "ACS Hotel Barrachi",
+    "tipo": "Hotel",
+    "subtipo": "ACS"
+  },
+  "D-369": {
+    "nombre": "ACS Hotel Boulevard",
+    "tipo": "Hotel",
+    "subtipo": "ACS"
+  },
+  "D-370": {
+    "nombre": "ACS Hotel Canciller Ayala",
+    "tipo": "Hotel",
+    "subtipo": "ACS"
+  },
+  "D-371": {
+    "nombre": "ACS Hotel Dato",
+    "tipo": "Hotel",
+    "subtipo": "ACS"
+  },
+  "D-372": {
+    "nombre": "ACS Hotel Desiderio",
+    "tipo": "Hotel",
+    "subtipo": "ACS"
+  },
+  "D-373": {
+    "nombre": "ACS Hotel Duque de Wellington",
+    "tipo": "Hotel",
+    "subtipo": "ACS"
+  },
+  "D-374": {
+    "nombre": "ACS Hotel El Caserón",
+    "tipo": "Hotel",
+    "subtipo": "ACS"
+  },
+  "D-375": {
+    "nombre": "ACS CCIbaiondo",
+    "tipo": "polideportivo",
+    "subtipo": "ACS"
+  },
+  "D-376": {
+    "nombre": "ACS Hotel Gorbea",
+    "tipo": "Hotel",
+    "subtipo": "ACS"
+  },
+  "D-377": {
+    "nombre": "ACS Hotel Holiday Inn Express",
+    "tipo": "Hotel",
+    "subtipo": "ACS"
+  },
+  "D-378": {
+    "nombre": "ACS Hotel Iradier",
+    "tipo": "Hotel",
+    "subtipo": "ACS"
+  },
+  "D-379": {
+    "nombre": "ACS Hotel La Bilbaína",
+    "tipo": "Hotel",
+    "subtipo": "ACS"
+  },
+  "D-380": {
+    "nombre": "ACS Hotel La Zuyana",
+    "tipo": "Hotel",
+    "subtipo": "ACS"
+  },
+  "D-381": {
+    "nombre": "ACS Hotel Palacio de Elorriaga",
+    "tipo": "Hotel",
+    "subtipo": "ACS"
+  },
+  "D-382": {
+    "nombre": "ACS Atlas",
+    "tipo": "Polideportivo privado",
+    "subtipo": "ACS"
+  },
+  "D-382-1": {
+    "nombre": "Atlas ACS circuito balneario",
+    "tipo": "Polideportivo privado",
+    "subtipo": "ACS"
+  },
+  "D-382-2": {
+    "nombre": "Atlas ACS circuito sala botiquin",
+    "tipo": "Polideportivo privado",
+    "subtipo": "ACS"
+  },
+  "D-382-3": {
+    "nombre": "Atlas ACS circuito gimnasio",
+    "tipo": "Polideportivo privado",
+    "subtipo": "ACS"
+  },
+  "D-383": {
+    "nombre": "ACS Pensión Casa 400",
+    "tipo": "Hotel",
+    "subtipo": "ACS"
+  },
+  "D-384": {
+    "nombre": "ACS Hotel Achuri",
+    "tipo": "Hotel",
+    "subtipo": "ACS"
+  },
+  "D-386": {
+    "nombre": "ACS Hydra Boulevard",
+    "tipo": "Polideportivo privado",
+    "subtipo": "ACS"
+  },
+  "D-387": {
+    "nombre": "ACS Gimnasio K2",
+    "tipo": "Polideportivo privado",
+    "subtipo": "ACS"
+  },
+  "D-389": {
+    "nombre": "ACS La Peña Vitoriana",
+    "tipo": "Polideportivo privado",
+    "subtipo": "ACS"
+  },
+  "D-392": {
+    "nombre": "ACS Bakh",
+    "tipo": "Polideportivo privado",
+    "subtipo": "ACS"
+  },
+  "D-394": {
+    "nombre": "ACS Piscinas Olabide",
+    "tipo": "Centro educativo",
+    "subtipo": "ACS"
+  },
+  "D-395": {
+    "nombre": "ACS Residencia Colisee Miñano",
+    "tipo": "residencia",
+    "subtipo": "ACS"
+  },
+  "D-396": {
+    "nombre": "ACS Residencia Ariñez",
+    "tipo": "residencia",
+    "subtipo": "ACS"
+  },
+  "D-397": {
+    "nombre": "ACS Residencia Otazu",
+    "tipo": "residencia",
+    "subtipo": "ACS"
+  },
+  "D-398": {
+    "nombre": "ACS Residencia Lakua DFA",
+    "tipo": "residencia",
+    "subtipo": "ACS"
+  },
+  "D-399": {
+    "nombre": "ACS Residencia Abetxuko",
+    "tipo": "residencia",
+    "subtipo": "ACS"
+  },
+  "D-900": {
+    "nombre": "Riego Zumabide Aretxabaleta",
+    "tipo": "Varios",
+    "subtipo": "Riego"
+  },
+  "D-901": {
+    "nombre": "Riego Maria Maeztu",
+    "tipo": "Varios",
+    "subtipo": "Riego"
+  },
+  "D-904": {
+    "nombre": "Riego San Martin Bustinzuri",
+    "tipo": "Varios",
+    "subtipo": "Riego"
+  },
+  "D-905": {
+    "nombre": "Riego San Martin interior",
+    "tipo": "Varios",
+    "subtipo": "Riego"
+  },
+  "D-906": {
+    "nombre": "Riego San Martin Lago",
+    "tipo": "Varios",
+    "subtipo": "Riego"
+  },
+  "D-907": {
+    "nombre": "Riego Arana",
+    "tipo": "Varios",
+    "subtipo": "Riego"
+  },
+  "D-908": {
+    "nombre": "Riego Etxezarra",
+    "tipo": "Varios",
+    "subtipo": "Riego"
+  },
+  "D-909": {
+    "nombre": "Riego Lakuabizkarra",
+    "tipo": "Varios",
+    "subtipo": "Riego"
+  },
+  "D-910": {
+    "nombre": "Fte or Cuadrilla Vitoria",
+    "tipo": "Fuente ornamental",
+    "subtipo": "Fuente ornamental",
+	"coords":[42.8581858242208, -2.6684876878667]
+  },
+  "D-911": {
+    "nombre": "Fte or Parque Norte",
+    "tipo": "Fuente ornamental",
+    "subtipo": "Fuente ornamental",
+	"coords":[42.852662092203, -2.67027008323399]
+  },
+  "D-912": {
+    "nombre": "Fte or Constitución",
+    "tipo": "Fuente ornamental",
+    "subtipo": "Fuente ornamental",
+	"coords":[42.85499170500697, -2.679168580942587]
+  },
+  "D-914": {
+    "nombre": "Fte or Gazalbide",
+    "tipo": "Fuente ornamental",
+    "subtipo": "Fuente ornamental",
+	"coords":[42.85615851107105, -2.68620833474453]
+  },
+  "D-915": {
+    "nombre": "Fte or Iparralde",
+    "tipo": "Fuente ornamental",
+    "subtipo": "Fuente ornamental",
+	"coords":[42.854741614836, -2.6673658089155]
+  },
+  "D-916": {
+    "nombre": "Fte or Galeon Lakua",
+    "tipo": "Fuente ornamental",
+    "subtipo": "Fuente ornamental",
+	"coords":[42.8621433816209, -2.6967101023928]
+  },
+  "D-917": {
+    "nombre": "Fte or Juzgados",
+    "tipo": "Fuente ornamental",
+    "subtipo": "Fuente ornamental",
+	"coords":[42.84436406402089, -2.68212915304183]
+  },
+  "D-918": {
+    "nombre": "Fte or Resid San Prudencio",
+    "tipo": "residencia",
+    "subtipo": "Fuente ornamental"
+  },
+  "D-919": {
+    "nombre": "ACS Hotel Catedral",
+    "tipo": "Hotel",
+    "subtipo": "ACS"
+  },
+  "D-920": {
+    "nombre": "ACS Residencia Elorri ACS",
+    "tipo": "residencia",
+    "subtipo": "ACS"
+  },
+  "D-921": {
+    "nombre": "Riego Molinuevo",
+    "tipo": "Varios",
+    "subtipo": "Riego"
+  },
+  "D-922": {
+    "nombre": "Fachada vegetal Europa",
+    "tipo": "Varios",
+    "subtipo": "Riego"
+  },
+  "D-953": {
+    "nombre": "ACS Residencia Aitona Etxea",
+    "tipo": "residencia",
+    "subtipo": "ACS"
+  },
+  "D-958": {
+    "nombre": "ACS Restaurante La Brasa",
+    "tipo": "bar",
+    "subtipo": "ACS"
+  },
+  "D-959": {
+    "nombre": "Lavacoches Elefante Azul",
+    "tipo": "Lavacoches",
+    "subtipo": "lavacoches",
+	"coords":[42.83677872126, -2.6992571823933]
+  },
+  "D-960": {
+    "nombre": "Fuente orn Juan Pablo I",
+    "tipo": "residencia",
+    "subtipo": "Fuente ornamental"
+  },
+  "D-966": {
+    "nombre": "ACS Centro acogida social municipal",
+    "tipo": "Residencia",
+    "subtipo": "ACS"
+  },
+  "D-976": {
+    "nombre": "Riego Aranbizkarra",
+    "tipo": "Varios",
+    "subtipo": "Riego"
+  },
+  "D-977": {
+    "nombre": "ACS CC Salburua ACS",
+    "tipo": "polideportivo",
+    "subtipo": "ACS"
+  },
+  "D-978": {
+    "nombre": "Riego Salburua",
+    "tipo": "Varios",
+    "subtipo": "Riego"
+  },
+  "D-979": {
+    "nombre": "Riego parque Zabalgana",
+    "tipo": "Varios",
+    "subtipo": "Riego"
+  },
+  "D-980": {
+    "nombre": "Riego parque Arriaga",
+    "tipo": "Varios",
+    "subtipo": "Riego"
+  },
+  "D-981": {
+    "nombre": "Riego parque el Prado",
+    "tipo": "Varios",
+    "subtipo": "Riego"
+  },
+  "D-982": {
+    "nombre": "Riego Judimendi",
+    "tipo": "Varios",
+    "subtipo": "Riego"
+  },
+  "D-983": {
+    "nombre": "Geiser parque Arriaga",
+    "tipo": "Fuente ornamental",
+    "subtipo": "Fuente ornamental",
+	"coords":[42.86288520850176, -2.6777551121044],
+	"email":"paisajeurbano@vitoria-gasteiz.org"
+  },
+  "D-987": {
+    "nombre": "Lavacoches Repsol Trianas",
+    "tipo": "gasolinera",
+    "subtipo": "lavacoches",
+	"coords":[42.83972316552165, -2.66237339976354]
+  },
+  "D-988": {
+    "nombre": "ACS Frontones Lakua 03 ACS",
+    "tipo": "Frontones",
+    "subtipo": "ACS"
+  },
+  "D-999": {
+    "nombre": "Fuente orn El Cocodrilo",
+    "tipo": "Fuente ornamental",
+    "subtipo": "Fuente ornamental",
+	"coords":[42.84518192095005, -2.67831813897868]
+  },
+  "LEGIO-000": {
+    "nombre": "no programada legio",
+    "tipo": "Varios",
+  },
+  "D-1090": {
+    "nombre": "RESIDENCIA AGURE - ZABALGANA",
+    "tipo": "Residencia",
+    "subtipo": "ACS"
+  },
+  "D-1104": {
+    "nombre": "Residencia Ascarza",
+    "tipo": "Legio ACS",
+    "subtipo": "ACS"
+  },
+  "D-1087": {
+    "nombre": "RESIDENCIA LAKUA",
+    "tipo": "Residencia",
+    "subtipo": "AFCH Grifo"
+  },
+  "D-1105": {
+    "nombre": "Residencia Hogar Alavés",
+    "tipo": "Legio ACS",
+    "subtipo": "ACS"
+  },
+  "D-1022": {
+    "nombre": "RESIDENCIA SAN IGNACIO",
+    "tipo": "Residencia",
+    "subtipo": "ACS"
+  },
+  "D-1095": {
+    "nombre": "RESIDENCIA TAGORE",
+    "tipo": "Residencia",
+    "subtipo": "ACS"
+  },
+  "D-1136": {
+    "nombre": "RESIDENCIA PALACIO DE LA BURULLERIA",
+    "tipo": "Residencia",
+    "subtipo": "ACS"
+  },
+  "D-1109": {
+    "nombre": "Residencia Aiara",
+    "tipo": "Legio ACS",
+    "subtipo": "ACS"
+  },
+  "D-1097": {
+    "nombre": "RESIDENCIA ALBERTIA CAMPUS",
+    "tipo": "Residencia",
+    "subtipo": "ACS"
+  },
+  "D-1110": {
+    "nombre": "Residencia geriátrica El Pilar",
+    "tipo": "Legio ACS",
+    "subtipo": "ACS"
+  },
+  "D-1096": {
+    "nombre": "Residencia Mercedarias Egoitza",
+    "tipo": "Residencia",
+    "subtipo": "ACS"
+  },
+  "D-1088": {
+    "nombre": "Apparthotel passivhaus Kora Green City",
+    "tipo": "Hotel",
+    "subtipo": "ACS"
+  },
+  "D-1141": {
+    "nombre": "Apartamentos Irenaz",
+    "tipo": "Hotel",
+    "subtipo": "ACS"
+  },
+  "D-1082": {
+    "nombre": "Lavacoches Onaindia Ptal Arriaga 66",
+    "tipo": "Lavacoches",
+    "subtipo": "Lavacoches",
+	"coords":[42.86882172453038, -2.67851617247947]
+  },
+  "D-1107": {
+    "nombre": "Lavacoches Ibaia Energy",
+    "tipo": "Lavacoches",
+    "subtipo": "Lavacoches",
+	"coords":[42.829366137115, -2.7227249333878]
+  },
+  "D-1108": {
+    "nombre": "Lavacoches Ballenoil",
+    "tipo": "Lavacoches",
+    "subtipo": "Lavacoches",
+	"coords":[42.836060284500, -2.70185318956172]
+  },
+  "D-319-1": {
+    "nombre": "Edificio social Mendizorrotza",
+    "tipo": "Polideportivo",
+    "subtipo": "ACS"
+  },
+  "D-1081": {
+    "nombre": "Lavacoches lowcost venta estrella",
+    "tipo": "Lavacoches",
+    "subtipo": "Lavacoches",
+	"coords":[42.83729173193958, -2.65792664393718]
+  },
+  "D-313-1": {
+    "nombre": "Polidep Lakua03 zona izd",
+    "tipo": "Polideportivo",
+    "subtipo": "ACS"
+  },
+  "D-313-2": {
+    "nombre": "Polidep Lakua 03 zona dcha",
+    "tipo": "Polideportivo",
+    "subtipo": "ACS"
+  },
+  "D-313-3": {
+    "nombre": "Polidep Lakua 03 campo futbol",
+    "tipo": "Polideportivo",
+    "subtipo": "ACS"
+  },
+  "D-1083": {
+    "nombre": "Lavacoches CEPSA Dusseldorf",
+    "tipo": "Lavacoches",
+    "subtipo": "Lavacoches",
+	"coords":[42.852082855295, -2.71001174572264]
+  },
+  "D-1084": {
+    "nombre": "Fuente ornamental Deva",
+    "tipo": "Fuente ornamental",
+    "subtipo": "Fuente ornamental",
+	"coords":[42.858453792584, -2.662314836460]
+  },
+  "D-1085": {
+    "nombre": "Lavacoches Ballenoil Adurza Vitoria2",
+    "tipo": "Lavacoches",
+    "subtipo": "Lavacoches",
+	"coords":[42.8341511384322, -2.66603482397103]
+  },
+  "D-1091": {
+    "nombre": "Apartamentos Dreampark",
+    "tipo": "Legio ACS",
+    "subtipo": "ACS"
+  },
+  "D-1089": {
+    "nombre": "SYNERGYM BORINBIZKARRA",
+    "tipo": "Gimnasio",
+    "subtipo": "ACS"
+  },
+  "D-1086": {
+    "nombre": "HOTEL IBIS BUDGET",
+    "tipo": "Hotel",
+    "subtipo": "ACS"
+  },
+  "D-1092": {
+    "nombre": "Fuente ornamental Abendaño",
+    "tipo": "Fuente ornamental",
+    "subtipo": "Fuente ornamental",
+	"coords":[42.846077309158, -2.6835335561616]
+  },
+  "D-1093": {
+    "nombre": "Fuente ornamental Juan de Ayala",
+    "tipo": "Legio ACS",
+    "subtipo": "ACS"
+  },
+  "D-1094 ": {
+    "nombre": "Fuente ornamental edificio Aqua Salburua",
+    "tipo": "Fuente ornamental",
+    "subtipo": "Fuente ornamental",
+	"coords":[42.853649228732, -2.64932601207691]
+  },
+  "D-1098": {
+    "nombre": "Residencia Senda Corazonistas",
+    "tipo": "Legio ACS",
+    "subtipo": "ACS"
+  },
+  "D-1099": {
+    "nombre": "Campo de Futbol Adurza",
+    "tipo": "Campo de futbol",
+    "subtipo": "Aspersores"
+  },
+  "D-1100": {
+    "nombre": "Campo de futbol Adurzabal",
+    "tipo": "Campo de futbol",
+    "subtipo": "Aspersores"
+  },
+  "D-1101": {
+    "nombre": "Residencia Albertia Iradier",
+    "tipo": "Residencia",
+    "subtipo": "ACS"
+  },
+  "D-1102": {
+    "nombre": "Residencia Egoitza",
+    "tipo": "Legio ACS",
+    "subtipo": "ACS"
+  },
+  "D-1103": {
+    "nombre": "Residencia Goizalde",
+    "tipo": "Residencia",
+    "subtipo": "ACS"
+  },
+  "D-1106": {
+    "nombre": "Residencia IMQ-Igurco",
+    "tipo": "Legio ACS",
+    "subtipo": "ACS"
+  },
+  "D-1111": {
+    "nombre": "Go Gym",
+    "tipo": "Legio ACS",
+    "subtipo": "ACS"
+  },
+  "D-1112": {
+    "nombre": "Fitness Gasteiz (Energy Fitness)",
+    "tipo": "Legio ACS",
+    "subtipo": "ACS"
+  },
+  "D-1113": {
+    "nombre": "Gimnasio Gasteiz Sport",
+    "tipo": "Legio ACS",
+    "subtipo": "ACS"
+  },
+  "D-1114": {
+    "nombre": "Alta Fit Los Herrán",
+    "tipo": "Legio ACS",
+    "subtipo": "ACS"
+  },
+  "D-1115 ": {
+    "nombre": "Dreamfit Vitoria",
+    "tipo": "Gimnasio",
+    "subtipo": "ACS"
+  },
+  "D-1116": {
+    "nombre": "Gimnasio Yin-Yang",
+    "tipo": "Legio ACS",
+    "subtipo": "ACS"
+  },
+  "D-1117": {
+    "nombre": "Gimnasio Rodas",
+    "tipo": "Legio ACS",
+    "subtipo": "ACS"
+  },
+  "D-1118": {
+    "nombre": "Campo de futbol La Vitoriana 01 (cementario)",
+    "tipo": "Legio Riego",
+    "subtipo": "Riego"
+  },
+  "D-1119": {
+    "nombre": "Campo de futbol La Vitoriana 2",
+    "tipo": "Legio Riego",
+    "subtipo": "Riego"
+  },
+  "D-1120": {
+    "nombre": "Campo de futbol Zaramaga",
+    "tipo": "Legio Riego",
+    "subtipo": "Riego"
+  },
+  "D-390": {
+    "nombre": "Polideportivo Landázuri (ACS)",
+    "tipo": "Legio ACS",
+    "subtipo": "ACS"
+  },
+  "D-391": {
+    "nombre": "C.C.el Pilar",
+    "tipo": "Legio ACS",
+    "subtipo": "ACS"
+  },
+  "D-393": {
+    "nombre": "ACS Atlas",
+    "tipo": "Legio ACS",
+    "subtipo": "ACS"
+  },
+  "D-385": {
+    "nombre": "Pensión Arriaga",
+    "tipo": "Legio ACS",
+    "subtipo": "ACS"
+  },
+  "D-341-2": {
+    "nombre": "Quavitae, C/Teodoro G Zarate 14",
+    "tipo": "Legio ACS",
+    "subtipo": "ACS"
+  },
+  "D-341-1": {
+    "nombre": "Quavitae, C/Teodoro G Zarate 14",
+    "tipo": "Legio ACS",
+    "subtipo": "ACS"
+  },
+  "D-360-1": {
+    "nombre": "Hotel Barcelo, Avenida Gasteiz 45",
+    "tipo": "Legio ACS",
+    "subtipo": "ACS"
+  },
+  "D-361-2": {
+    "nombre": "Hotel Barcelo, Avenida Gasteiz 45",
+    "tipo": "Legio ACS",
+    "subtipo": "ACS"
+  },
+  "D-360-2": {
+    "nombre": "Hotel Barcelo, Avenida Gasteiz 45",
+    "tipo": "Legio ACS",
+    "subtipo": "ACS"
+  },
+  "D-362-1": {
+    "nombre": "Gran Hotel Lakua, Tarragona, 8",
+    "tipo": "Legio ACS",
+    "subtipo": "ACS"
+  },
+  "D-362-2": {
+    "nombre": "Gran Hotel Lakua, Tarragona, 8",
+    "tipo": "Legio ACS",
+    "subtipo": "ACS"
+  },
+  "D-263": {
+    "nombre": "RESIDENCIA LOS ARQUILLOS: Paseo de los Arquillos 11 bajo",
+    "tipo": "Legio ACS",
+    "subtipo": "ACS"
+  },
+  "D-364": {
+    "nombre": "Casa de Duchas C/ Correria 106",
+    "tipo": "Legio ACS",
+    "subtipo": "ACS"
+  },
+  "D-330": {
+    "nombre": "BARCELO HOTEL GASTEIZ, Avenida de Gasteiz, 45",
+    "tipo": "Legio ACS",
+    "subtipo": "ACS"
+  },
+  "D-302-POLI": {
+    "nombre": "Polideportivo Abetxuko ACS",
+    "tipo": "Legio ACS",
+    "subtipo": "ACS"
+  },
+  "D-319-LUD": {
+    "nombre": "Piscinas Mendizorrotza ACS",
+    "tipo": "Legio ACS",
+    "subtipo": "ACS"
+  },
+  "D-319-SOC": {
+    "nombre": "Mendizorrotza Centro Social ACS",
+    "tipo": "Legio ACS",
+    "subtipo": "ACS"
+  },
+  "D-10047": {
+    "nombre": "ACS Polideportivo El Campillo",
+    "tipo": "Legio ACS",
+    "subtipo": "ACS"
+  },
+  "D-314-2": {
+    "nombre": "ESTADIO SD Trinkete ACS",
+    "tipo": "Legio ACS",
+    "subtipo": "ACS"
+  },
+  "D-1115": {
+    "nombre": "Dreamfit Vitoria",
+    "tipo": "Legio ACS",
+    "subtipo": "ACS"
+  },
+  "D-1121": {
+    "nombre": "Lavacoches Shell Betoño",
+    "tipo": "Lavacoches",
+    "subtipo": "Lavacoches",
+	"coords": [42.86474837988303, -2.653187043598311]
+  },
+  "D-1023": {
+    "nombre": "ACS Residencia Erantsi",
+    "tipo": "Legio ACS",
+    "subtipo": "ACS"
+  },
+  "D-1124": {
+    "nombre": "Lavacoches ES Repsol Portal de Gamarra",
+    "tipo": "Legio VLH",
+    "subtipo": "Lavacoches",
+	"coords": [42.86426268488, -2.66058702907]
+  },
+  "D-1125": {
+    "nombre": "Lavacoches ONA Low cost Portal de Gamarra",
+    "tipo": "Legio VLH",
+    "subtipo": "Lavacoches",
+	"coords":[42.87280547067821, -2.659219718797]
+  },
+  "D-1126": {
+    "nombre": "Synergym San Martin",
+    "tipo": "Legio ACS",
+    "subtipo": "ACS"
+  },
+  "D-1127": {
+    "nombre": "Synergym Lakua",
+    "tipo": "Legio ACS",
+    "subtipo": "ACS"
+  },
+  "D-1128": {
+    "nombre": "Synergym Zaramaga",
+    "tipo": "Legio ACS",
+    "subtipo": "ACS"
+  },
+  "D-1129": {
+    "nombre": "Synergym Arana",
+    "tipo": "Legio ACS",
+    "subtipo": "ACS"
+  },
+  "D-1130": {
+    "nombre": "Basic Fit Portal de Arriaga",
+    "tipo": "Legio ACS",
+    "subtipo": "ACS"
+  },
+  "D-1131": {
+    "nombre": "Alta Fit Guridi",
+    "tipo": "Legio ACS",
+    "subtipo": "ACS"
+  },
+  "D-1132": {
+    "nombre": "Cross fit Arana",
+    "tipo": "Legio ACS",
+    "subtipo": "ACS"
+  },
+  "D-1134": {
+    "nombre": "Residencia Lorea Txago",
+    "tipo": "Legio ACS",
+    "subtipo": "ACS"
+  },
+  "D-1135": {
+    "nombre": "Residencia Carema",
+    "tipo": "Legio ACS",
+    "subtipo": "ACS"
+  },
+  "D-1133": {
+    "nombre": "Fuente ornamental 8 marzo",
+    "tipo": "Legio FOR",
+    "subtipo": "Fuente ornamental",
+	"coords":[42.85413331954953, -2.649010004079625]
+  },
+  "D-1138": {
+    "nombre": "Hotel Eire",
+    "tipo": "Legio ACS",
+    "subtipo": "ACS"
+  },
+  "D-1142": {
+    "nombre": "Apartamentos Divan",
+    "tipo": "Legio ACS",
+    "subtipo": "ACS"
+  },
+  "D-1139": {
+    "nombre": "Aparthotel Jardines de Arizti",
+    "tipo": "Legio ACS",
+    "subtipo": "ACS"
+  },
+  "D-1140": {
+    "nombre": "Hotel Limehome",
+    "tipo": "Legio ACS",
+    "subtipo": "ACS"
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// ========== Helpers fecha (sin UTC) ==========
+function keyFromAnyDate(v){ if(!v) return null; const s=String(v).trim();
+  let m=s.match(/^(\d{4})-(\d{2})-(\d{2})$/); if(m) return `${m[1]}-${m[2]}-${m[3]}`;
+  m=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/); if(m){ const dd=m[1].padStart(2,'0'),mm=m[2].padStart(2,'0'); const yyyy=m[3].length===2?(parseInt(m[3],10)>=70?'19'+m[3]:'20'+m[3]):m[3]; return `${yyyy}-${mm}-${dd}`;}
+  return null;
+}
+function addDaysISO(iso,n){ const [y,m,d]=iso.split('-').map(Number); const dt=new Date(y,m-1,d); dt.setDate(dt.getDate()+n); const yy=dt.getFullYear(),mm=String(dt.getMonth()+1).padStart(2,'0'),dd=String(dt.getDate()).padStart(2,'0'); return `${yy}-${mm}-${dd}`;}
+function fmtDMY(iso){ const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(iso||''); return m?`${m[3]}-${m[2]}-${m[1]}`:iso; }
+
+// ========= Normaliza casos (soporta coords[] o places[]) =========
+const CASES = (window.CASES_JSON||[]).map(c=>{
+  const iso = keyFromAnyDate(c.date); if(!iso) return null;
+  const pts = [];
+  if (Array.isArray(c.places)) {
+    c.places.forEach((p,i)=>{
+      const la = (p && (p.lat ?? (p.coords && p.coords[0]))), ln = (p && (p.lng ?? (p.coords && p.coords[1])));
+      if (typeof la==='number' && typeof ln==='number') pts.push({ ll:[ln,la], label: (p.name||p.type||`P${i+1}`) });
+    });
+  }
+  if (!pts.length && Array.isArray(c.coords)) {
+    c.coords.forEach(([la,ln],i)=> pts.push({ ll:[ln,la], label:null }));
+  }
+  return {
+    id: String(c.id).startsWith('C-')?String(c.id):`C-${c.id}`,
+    iso, year:+iso.slice(0,4), dmy:fmtDMY(iso), contagioDMY:fmtDMY(addDaysISO(iso,-15)),
+    points: pts
+  };
+}).filter(Boolean);
+
+// ========= MapLibre base =========
+const map = new maplibregl.Map({
+  container:'map',
+  style:{
+    version:8,
+     glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf", /* necesario para labels */
+    sources:{
+      osm:   {type:'raster', tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png'], tileSize:256, maxzoom:19},
+      light: {type:'raster', tiles:['https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png'], tileSize:256, maxzoom:19},
+      esri:  {type:'raster', tiles:['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'], tileSize:256, maxzoom:19}
+    },
+    layers:[
+      {id:'osm',type:'raster',source:'osm',layout:{visibility:'visible'}},
+      {id:'light',type:'raster',source:'light',layout:{visibility:'none'}},
+      {id:'esri',type:'raster',source:'esri',layout:{visibility:'none'}}
+    ]
+  },
+  center:[-2.675,42.846], zoom:16.8, pitch:55, bearing:330
+});
+map.addControl(new maplibregl.NavigationControl({visualizePitch:true}), 'top-right');
+map.addControl(new maplibregl.ScaleControl({maxWidth:120,unit:'metric'}), 'bottom-left');
+
+// ==== Estado global para casos y riesgo ====
+const casesBounds = new maplibregl.LngLatBounds();
+const CASE_STORE = new Map(); // id -> {markers:[], circles:[ids], lineId?}
+const YEAR_INDEX = new Map();
+let riskIndex = []; // [{name, cat, ll}]
+
+// ==== Carga de edificios + casos + riesgo ====
+map.on('load', async ()=>{
+  // Edificios 3D
+  map.addSource('buildings',{type:'geojson', data:BUILDINGS_URL});
+  map.addLayer({
+    id:'buildings-3d', type:'fill-extrusion', source:'buildings',
+    paint:{
+      'fill-extrusion-color':'#a7b6c9','fill-extrusion-opacity':0.85,
+      'fill-extrusion-height':[
+        'coalesce',['to-number',['get','height']],
+        ['*',['to-number',['get','building:levels']],3.2],
+        10
+      ]
+    }
+  });
+
+  // Casos
+  const skullEl = (size=24)=>{ const d=document.createElement('div'); d.style.fontSize=size+'px'; d.textContent='☠️'; d.style.filter='drop-shadow(0 1px 2px rgba(0,0,0,.4))'; return d; };
+  CASES.forEach(c=>{
+    const ids = { markers:[], circles:[], lineId:null };
+    const pts = c.points;
+
+    pts.forEach((p,idx)=>{
+      const popup = `<b>${c.id}</b><br>${p.label?`${p.label}<br>`:''}
+                     Caso: ${c.dmy}<br>Contagio aprox.: ${c.contagioDMY}
+                     ${pts.length>1?`<br>Punto ${idx+1}/${pts.length}`:''}`;
+      const mk = new maplibregl.Marker({element:skullEl()})
+        .setLngLat(p.ll)
+        .setPopup(new maplibregl.Popup({offset:14}).setHTML(popup))
+        .addTo(map);
+      ids.markers.push(mk);
+      casesBounds.extend(p.ll);
+
+      const circ = circlePolygon(p.ll,400,64), cid=`circle-${c.id}-${idx}`;
+      map.addSource(cid,{type:'geojson',data:circ});
+      map.addLayer({id:cid,type:'fill',source:cid,paint:{'fill-color':'#f59e0b','fill-opacity':.16}});
+      map.addLayer({id:cid+'-s',type:'line',source:cid,paint:{'line-color':'#b45309','line-width':2,'line-opacity':.4}});
+      ids.circles.push(cid,cid+'-s');
+    });
+
+    if (pts.length>1){
+      const lid=`line-${c.id}`;
+      map.addSource(lid,{type:'geojson',data:{type:'Feature',geometry:{type:'LineString',coordinates:pts.map(p=>p.ll)}}});
+      map.addLayer({id:lid,type:'line',source:lid,paint:{'line-color':'#cc3300','line-width':3,'line-opacity':0.7,'line-dasharray':[6,4]}});
+      ids.lineId = lid;
+    }
+
+    CASE_STORE.set(c.id, ids);
+    (YEAR_INDEX.get(c.year) || YEAR_INDEX.set(c.year,[]).get(c.year)).push(c.id);
+  });
+
+  if (!casesBounds.isEmpty()) map.fitBounds(casesBounds,{padding:30});
+
+  // Riesgo
+  initRiskLayers(); // crea fuente + capas + wiring checkboxes + datalist
+
+  // UI casos
+  buildCasesUI();
+});
+
+// ====== UI base + 3D + buscadores ======
+document.getElementById('basemap').addEventListener('change',e=>{
+  const v=e.target.value;
+  map.setLayoutProperty('osm','visibility',v==='osm'?'visible':'none');
+  map.setLayoutProperty('light','visibility',v==='light'?'visible':'none');
+  map.setLayoutProperty('esri','visibility',v==='sat'?'visible':'none');
+});
+document.getElementById('pitch').addEventListener('input',e=> map.setPitch(+e.target.value));
+document.getElementById('bearing').addEventListener('input',e=> map.setBearing(+e.target.value));
+document.getElementById('chkBlds').addEventListener('change',e=>{
+  map.setLayoutProperty('buildings-3d','visibility', e.target.checked?'visible':'none');
+});
+document.getElementById('fit').onclick = ()=>{ if(!casesBounds.isEmpty()) map.fitBounds(casesBounds,{padding:30}); };
+
+// Buscador de calles
+async function geocode(q){
+  try{
+    const r=await fetch(`https://nominatim.openstreetmap.org/search?format=geojson&limit=1&q=${encodeURIComponent(q)}`,{headers:{'Accept-Language':'es'}});
+    const g=await r.json(); if (g.features?.length) return g.features[0];
+  }catch(_){}
+  try{
+    const r=await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=1`);
+    const g=await r.json(); if (g.features?.length) return g.features[0];
+  }catch(_){}
+  return null;
+}
+async function doSearch(){
+  const q=document.getElementById('q').value.trim(); if(!q) return;
+  const f=await geocode(q); if(!f) return alert('No encontrado');
+  if (f.bbox?.length===4){ const [minx,miny,maxx,maxy]=f.bbox; map.fitBounds([[minx,miny],[maxx,maxy]],{padding:40}); }
+  else if (f.properties?.boundingbox){ const [south,north,west,east]=f.properties.boundingbox.map(parseFloat); map.fitBounds([[west,south],[east,north]],{padding:40}); }
+  else { const [lng,lat]=f.geometry.coordinates; map.flyTo({center:[lng,lat],zoom:17,speed:.6}); }
+}
+document.getElementById('go').onclick = doSearch;
+document.getElementById('q').addEventListener('keydown',e=>{ if(e.key==='Enter') doSearch(); });
+
+// Buscador de riesgo (por nombre)
+document.getElementById('riskGo').onclick = searchRisk;
+document.getElementById('riskQ').addEventListener('keydown',e=>{ if(e.key==='Enter') searchRisk(); });
+function searchRisk(){
+  const q=document.getElementById('riskQ').value.trim().toLowerCase();
+  if (!q) return;
+  const matches = riskIndex.filter(r => r.name.toLowerCase().includes(q));
+  if (!matches.length) { alert('No encontrado'); return; }
+  const r = matches[0];
+  map.flyTo({ center:r.ll, zoom:18, speed:0.6 });
+  new maplibregl.Popup({offset:12})
+    .setLngLat(r.ll)
+    .setHTML(`${catEmoji(r.cat)} <b>${r.name}</b><br>${catLabel(r.cat)}`)
+    .addTo(map);
+}
+
+// ====== Filtros por año / caso (acordeón + master + líneas) ======
+function setCaseVisible(caseId, on){
+  const e=CASE_STORE.get(caseId); if(!e) return;
+  e.markers.forEach(m=> m.getElement().style.display = on?'':'none');
+  (e.circles||[]).forEach(id=>{ if(map.getLayer(id)) map.setLayoutProperty(id,'visibility',on?'visible':'none'); });
+  if (e.lineId && map.getLayer(e.lineId)) map.setLayoutProperty(e.lineId,'visibility',
+      document.getElementById('chkLines').checked && on ? 'visible':'none');
+}
+function setYearVisible(year,on){
+  (YEAR_INDEX.get(year)||[]).forEach(id=>{
+    setCaseVisible(id,on);
+    const cb=document.getElementById(`case_${year}_${cssSafe(id)}`); if(cb) cb.checked=on;
+  });
+  const ycb=document.getElementById(`year_${year}`); if(ycb) ycb.checked=on;
+  syncMaster();
+}
+function cssSafe(s){ return String(s).replace(/[^a-z0-9_-]/ig,'_'); }
+
+function buildCasesUI(){
+  const yearsBox  = document.getElementById('years');
+  const years     = Array.from(YEAR_INDEX.keys()).sort((a,b)=>b-a);
+  const latest    = years[0];
+
+  // master
+  const master=document.getElementById('chkAll');
+  master.checked=false;
+  master.onchange=()=>{
+    const on = master.checked;
+    years.forEach(y=>{
+      setYearVisible(y,on);
+      const ycb=document.getElementById(`year_${y}`); if (ycb) ycb.checked=on;
+      (YEAR_INDEX.get(y)||[]).forEach(id=>{
+        const cb=document.getElementById(`case_${y}_${cssSafe(id)}`); if(cb) cb.checked=on;
+      });
+    });
+  };
+
+  yearsBox.innerHTML='';
+
+  years.forEach(y=>{
+    const sec = document.createElement('div');
+
+    const open = (y===latest);
+    const h = document.createElement('button');
+    h.className='acc-h';
+    h.setAttribute('aria-expanded', String(open));
+    h.innerHTML=`<span>${y}</span><span class="chev">▾</span>`;
+    sec.appendChild(h);
+
+    const b = document.createElement('div');
+    b.className='acc-b';
+    b.style.display = open ? 'block' : 'none';
+
+    // checkbox del año
+    const yearRow=document.createElement('div');
+    yearRow.className='case-li';
+    yearRow.innerHTML=`<input id="year_${y}" type="checkbox" ${open?'checked':''}>
+                       <label for="year_${y}"><b>Todo ${y}</b></label>`;
+    b.appendChild(yearRow);
+
+    setTimeout(()=>{ const ycb=document.getElementById(`year_${y}`); ycb.onchange=e=>setYearVisible(y,e.target.checked); },0);
+
+    // Casos individuales
+    const ids=(YEAR_INDEX.get(y)||[]).slice().sort((a,b)=> a.localeCompare(b));
+    ids.forEach(id=>{
+      const c=CASES.find(x=>x.id===id); const safe=cssSafe(id);
+      const row=document.createElement('div');
+      row.className='case-li';
+      row.innerHTML=`<input id="case_${y}_${safe}" type="checkbox" ${open?'checked':''}>
+                     <label for="case_${y}_${safe}">${fmtDMY(c.iso)} · ${id}</label>`;
+      b.appendChild(row);
+
+      setTimeout(()=>{ const cb=document.getElementById(`case_${y}_${safe}`); cb.onchange=e=>setCaseVisible(id,e.target.checked); setCaseVisible(id,open); },0);
+    });
+
+    // toggle acordeón
+    h.onclick=()=>{ const ex=h.getAttribute('aria-expanded')==='true'; h.setAttribute('aria-expanded',String(!ex)); b.style.display=ex?'none':'block'; };
+
+    sec.appendChild(b);
+    yearsBox.appendChild(sec);
+  });
+
+  syncMaster();
+
+  // Toggle de líneas
+  document.getElementById('chkLines').onchange = ()=>{
+    CASE_STORE.forEach(e=>{
+      if (e.lineId && map.getLayer(e.lineId)) {
+        const on = document.getElementById('chkLines').checked;
+        const vis = on ? 'visible' : 'none';
+        map.setLayoutProperty(e.lineId, 'visibility', vis);
+      }
+    });
+  };
+}
+function syncMaster(){
+  const years=Array.from(YEAR_INDEX.keys());
+  const on=years.every(y=> (YEAR_INDEX.get(y)||[]).every(id=>{
+    const cb=document.getElementById(`case_${y}_${cssSafe(id)}`); return cb && cb.checked;
+  }));
+  document.getElementById('chkAll').checked = on;
+}
+
+
+
+
+
+// ====== Puntos de riesgo: capas + buscador ======
+function catEmoji(cat){ return cat==='fuentes'?'⛲':(cat==='lavacoches'?'🧽':'🏢'); }
+function catLabel(cat){ return cat==='fuentes'?'Fuente ornamental':(cat==='lavacoches'?'Lavacoches':'Torre'); }
+
+function riskFeatures(activeCats){
+  const feats=[];
+  for (const [id,p] of Object.entries(window.samplingPointjson||{})){
+    if (!Array.isArray(p.coords)) continue;
+    const ll=[p.coords[1],p.coords[0]];
+    const t=((p.tipo||p.subtipo||'')+' '+(p.nombre||'')).toLowerCase();
+    const cat = t.includes('fuente') ? 'fuentes' :
+                t.includes('lava')   ? 'lavacoches' :
+                t.includes('torre')  ? 'torres' : null;
+    if (!cat || !activeCats.has(cat)) continue;
+    feats.push({ type:'Feature', properties:{ name:(p.nombre||id), cat }, geometry:{ type:'Point', coordinates: ll } });
+  }
+  return { type:'FeatureCollection', features:feats };
+}
+function populateRiskIndexAndDatalist(fc){
+  riskIndex = fc.features.map(f=>({ name:f.properties.name, cat:f.properties.cat, ll:f.geometry.coordinates }));
+  const dl = document.getElementById('riskNames');
+  dl.innerHTML = '';
+  // primeras 300 sugerencias para no saturar el DOM
+  riskIndex.slice(0,300).forEach(r=>{
+    const opt=document.createElement('option'); opt.value=r.name; dl.appendChild(opt);
+  });
+}
+
+
+function initRiskLayers(){
+  // 1) datos iniciales (tres categorías activas)
+  const cats = new Set(['fuentes','lavacoches','torres']);
+  const fc   = riskFeatures(cats);
+
+  // 2) elimina capas si existen, y SOLO DESPUÉS elimina la source
+  ['risk-names', 'risk-icons'].forEach(id => { if (map.getLayer(id)) map.removeLayer(id); });
+  if (map.getSource('risk')) map.removeSource('risk');
+
+  // 3) crea la source
+  map.addSource('risk', { type:'geojson', data: fc });
+
+  // 4) registrar imágenes (canvas -> ImageData), solo si no están
+  function makeIconImageData(letter, fill){
+    const size = 64, r = 26;
+    const c = document.createElement('canvas'); c.width=size; c.height=size;
+    const ctx = c.getContext('2d');
+    ctx.shadowColor='rgba(0,0,0,0.35)'; ctx.shadowBlur=3; ctx.shadowOffsetY=2;
+    ctx.beginPath(); ctx.arc(size/2, size/2, r, 0, Math.PI*2);
+    ctx.fillStyle = fill; ctx.fill();
+    ctx.lineWidth=3; ctx.strokeStyle='#fff'; ctx.stroke();
+    ctx.shadowColor='transparent';
+    ctx.font='700 22px system-ui, Segoe UI, Roboto, Arial';
+    ctx.fillStyle='#fff'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(letter, size/2, size/2 + 1);
+    const img = ctx.getImageData(0,0,size,size);
+    return { width: img.width, height: img.height, data: img.data };
+  }
+  if (!map.hasImage('ico-fuente')) map.addImage('ico-fuente', makeIconImageData('F','#2563eb'));
+  if (!map.hasImage('ico-lava'))   map.addImage('ico-lava',   makeIconImageData('L','#d97706'));
+  if (!map.hasImage('ico-torre'))  map.addImage('ico-torre',  makeIconImageData('T','#059669'));
+
+  // 5) añade capas (icono + nombre). Icono siempre visible; texto sin colisiones.
+  map.addLayer({
+    id:'risk-icons',
+    type:'symbol',
+    source:'risk',
+    layout:{
+      'icon-image': ['match',['get','cat'],
+        'fuentes','ico-fuente',
+        'lavacoches','ico-lava',
+        'torres','ico-torre',
+        'ico-fuente'
+      ],
+      // tamaño por zoom
+      'icon-size': ['interpolate',['linear'],['zoom'], 12,0.9, 15,1.2, 18,1.8],
+      'icon-allow-overlap': true,
+      'icon-ignore-placement': true
+    }
+  });
+
+  const riskColor = ['match',['get','cat'],
+    'fuentes','#2563eb','lavacoches','#d97706','torres','#059669','#374151'
+  ];
+  map.addLayer({
+    id:'risk-names',
+    type:'symbol',
+    source:'risk',
+    layout:{
+      'text-field':['get','name'],
+      'text-size': 13,
+      'text-offset':[0,1.1],
+      'text-anchor':'top',
+      'text-allow-overlap': true,          
+      'text-ignore-placement': true
+    },
+    paint:{
+      'text-color': riskColor,
+      'text-halo-color':'rgba(255,255,255,0.95)',
+      'text-halo-width': 1.4
+    }
+  });
+
+  // 6) rellenar buscador de riesgo
+  populateRiskIndexAndDatalist(fc);
+
+  // 7) wiring de checkboxes: ahora solo actualizamos la source (no reañadimos capas)
+  const all = document.getElementById('riskAll');
+  const cbs = {
+    'fuentes':     document.getElementById('riskFuente'),
+    'lavacoches':  document.getElementById('riskLava'),
+    'torres':      document.getElementById('riskTorre')
+  };
+  const currentCats = ()=>{ const s=new Set(); for (const k in cbs){ if (cbs[k].checked) s.add(k); } return s; };
+  const refreshAll  = ()=>{ all.checked = cbs.fuentes.checked && cbs.lavacoches.checked && cbs.torres.checked; };
+  const update = ()=>{
+    const fc = riskFeatures(currentCats());
+    map.getSource('risk').setData(fc);       // ⬅️ no toca capas → no hay “already exists”
+    populateRiskIndexAndDatalist(fc);
+    refreshAll();
+  };
+  all.onchange = ()=>{ const on=all.checked; for (const k in cbs) cbs[k].checked=on; update(); };
+  for (const k in cbs) cbs[k].onchange = update;
+  refreshAll();
+}
+
+
+
+/* ===== círculo como polígono ===== */
+function circlePolygon(centerLngLat, radiusMeters, steps=64){
+  const [lng,lat]=centerLngLat, R=6378137, d=radiusMeters/R, latR=lat*Math.PI/180, ring=[];
+  for(let i=0;i<=steps;i++){
+    const br=2*Math.PI*i/steps;
+    const lat2=Math.asin(Math.sin(latR)*Math.cos(d)+Math.cos(latR)*Math.sin(d)*Math.cos(br));
+    const lng2=(lng*Math.PI/180)+Math.atan2(Math.sin(br)*Math.sin(d)*Math.cos(latR),Math.cos(d)-Math.sin(latR)*Math.sin(lat2));
+    ring.push([lng2*180/Math.PI, lat2*180/Math.PI]);
+  }
+  return {type:'Feature',geometry:{type:'Polygon',coordinates:[ring]}};
+}
+
+
+
+
+
+// Inicializa headers colapsables (usa aria-expanded + CSS)
+function initCollapsibles(){
+  document.querySelectorAll('.sec-h').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const ex = btn.getAttribute('aria-expanded') === 'true';
+      btn.setAttribute('aria-expanded', String(!ex));
+      // body se muestra/oculta vía CSS; no hace falta tocar estilos aquí
+   
+      const key = 'uiSec:'+ (btn.id||btn.textContent.trim());
+      try { localStorage.setItem(key, String(!ex)); } catch {}
+    });
+
+    // (opcional) restaurar estado
+    const key = 'uiSec:'+ (btn.id||btn.textContent.trim());
+    try {
+      const saved = localStorage.getItem(key);
+      if (saved === 'true' || saved === 'false') {
+        btn.setAttribute('aria-expanded', saved);
+      }
+    } catch {}
+  });
+}
+
+
+document.addEventListener('DOMContentLoaded', initCollapsibles);
+
+</script>
+
+
+<script>
+(function(){
+  // =================== Utilidades ===================
+  const toRad = d => d * Math.PI / 180;
+  function haversineMeters(lat1, lon1, lat2, lon2){
+    const R=6371000;
+    const dφ=toRad(lat2-lat1), dλ=toRad(lon2-lon1);
+    const φ1=toRad(lat1), φ2=toRad(lat2);
+    const a = Math.sin(dφ/2)**2 + Math.cos(φ1)*Math.cos(φ2)*Math.sin(dλ/2)**2;
+    return 2*R*Math.asin(Math.sqrt(a));
+  }
+  const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+
+  function parseRings(str){ return str.split(',').map(s=>+s.trim()).filter(x=>isFinite(x)&&x>0).sort((a,b)=>a-b); }
+  function parseWeights(str){ return str.split(',').map(s=>+s.trim()).filter(x=>isFinite(x)); }
+
+  // =================== Lectura de datos ===================
+  function normalizeCasePointsFromItem(item){
+    // Devuelve [{lat,lon,date}] para un "caso" (puede ser con coords o places)
+    const out=[];
+    const date = item.date ? new Date(item.date) : null;
+    if (Array.isArray(item.coords)){
+      // coords: [[lat,lon], ...] o [lat,lon]
+      const arr = Array.isArray(item.coords[0]) ? item.coords : [item.coords];
+      arr.forEach(p=>{
+        const lat = p[0], lon = p[1];
+        if(isFinite(lat)&&isFinite(lon)) out.push({lat,lon,date});
+      });
+    }
+    if (Array.isArray(item.places)){
+      item.places.forEach(pl=>{
+        const lat=pl.lat, lon=pl.lng;
+        if(isFinite(lat)&&isFinite(lon)) out.push({lat,lon,date});
+      });
+    }
+    return out;
+  }
+
+  function isRiskCandidate(obj){
+    // Riesgo si tiene coords y un tipo/subtipo compatible
+    if (!obj || !obj.coords) return false;
+    const st=(obj.subtipo||'').toString().toLowerCase();
+    const t =(obj.tipo||'').toString().toLowerCase();
+    return st.includes('fuente') || st.includes('torre') || st.includes('lava') ||
+           t.includes('fuente')  || t.includes('torre')  || t.includes('lava');
+  }
+
+  function riskCategory(obj){
+    const s=(obj.subtipo||obj.tipo||'').toString().toLowerCase();
+    if (s.includes('fuente')) return 'fuente';
+    if (s.includes('lava')) return 'lavacoches';
+    return 'torre';
+  }
+
+  function extractData(){
+    // Soporta: window.CASES_JSON (array u objeto), o CASES + samplingPointjson
+    const casesPts=[];
+    const risks=[];
+
+    if (window.CASES_JSON){
+      if (Array.isArray(window.CASES_JSON)){
+        window.CASES_JSON.forEach(it=>{
+          // Heurística: si tiene date => caso; si tiene nombre/tipo y coords => riesgo
+          if (it && (it.date || it.places || it.coords)){
+            // Puede ser caso
+            const pts = normalizeCasePointsFromItem(it);
+            if (pts.length) casesPts.push(...pts);
+          }
+          if (it && isRiskCandidate(it)){
+            const lat = it.coords[0], lon=it.coords[1];
+            risks.push({id: it.id||it.nombre||'SinID', nombre: it.nombre||it.id||'—', cat: riskCategory(it), lat, lon});
+          }
+        });
+      }else if (typeof window.CASES_JSON==='object'){
+        for (const [k,v] of Object.entries(window.CASES_JSON)){
+          if (!v) continue;
+          if (v.date || v.places || v.coords){
+            // caso o riesgo; determinamos
+            if (isRiskCandidate(v)){
+              const lat=v.coords[0], lon=v.coords[1];
+              risks.push({id:k, nombre:v.nombre||k, cat:riskCategory(v), lat, lon});
+            }
+            const pts = normalizeCasePointsFromItem(v);
+            if (pts.length) casesPts.push(...pts);
+          }
+        }
+      }
+    }
+    // Fallback a estructuras antiguas
+    if (window.CASES && Array.isArray(window.CASES)){
+      window.CASES.forEach(c=>{
+        const pts=[];
+        (c.points||[]).forEach(p=>{ if (p?.ll && Array.isArray(p.ll)) pts.push({lat:p.ll[1], lon:p.ll[0], date: c.date?new Date(c.date):null}); });
+        casesPts.push(...pts);
+      });
+    }
+    if (window.samplingPointjson){
+      for (const [id,p] of Object.entries(window.samplingPointjson)){
+        if (p && Array.isArray(p.coords) && isRiskCandidate(p)){
+          risks.push({id, nombre:p.nombre||id, cat:riskCategory(p), lat:p.coords[0], lon:p.coords[1]});
+        }
+      }
+    }
+
+    // Rango de años
+    const years = casesPts.filter(p=>p.date instanceof Date && !isNaN(p.date))
+                          .map(p=>p.date.getFullYear());
+    const minYear = years.length ? Math.min(...years) : new Date().getFullYear();
+    const maxYear = years.length ? Math.max(...years) : new Date().getFullYear();
+
+    return {casesPts, risks, minYear, maxYear};
+  }
+
+  // =================== Métricas ===================
+  const metricDefs = {
+  exp:   {label:'Exponencial', invert:false, desc:'Suma de e^{-d/σ}. Da más peso a casos cercanos, decaimiento suave controlado por σ.',
+          latex: 'I_{\\text{exp}}(r)=\\sum_i e^{-d_i/\\sigma},\\quad d_i\\,\\text{en m}'},
+  gauss: {label:'Gaussiana', invert:false, desc:'Decrece más rápido que la exponencial; muy local.',
+          latex: 'I_{\\text{gauss}}(r)=\\sum_i e^{-\\tfrac{d_i^{2}}{2\\sigma^{2}}}'},
+  pow:   {label:'Gravity light', invert:false, desc:'Usa km y ε=0.01 km. Colas más largas; α controla cuánto pesan distancias medias.',
+          latex: 'I_{\\text{pow}}(r)=\\sum_i \\big(\\tfrac{d_i}{1000}+0.01\\big)^{-\\alpha}'},
+  idw:   {label:'IDW acotado', invert:false, desc:'Normalizado: solo cuenta d_i ≤ R y pondera como (R/d)^β.',
+          latex: 'I_{\\text{IDW}}(r)=\\sum_{d_i\\le R}\\left(\\tfrac{R}{d_i}\\right)^{\\beta}'},
+  knnmean:{label:'Media k-NN (m)', invert:true, desc:'Media de las k distancias más cercanas. Más pequeño ⇒ mayor proximidad.',
+          latex: 'I_{k\\text{-NN}}(r)=\\tfrac{1}{k}\\sum_{i=1}^{k} d_{(i)}'},
+  krad:  {label:'Radio k-ésimo (m)', invert:true, desc:'Distancia al caso k-ésimo más cercano.',
+          latex: 'I_{k\\text{-rad}}(r)=d_{(k)}'},
+  countR:{label:'Conteo ≤ R (n)', invert:false, desc:'Número de casos a una distancia ≤ R.',
+          latex: 'I_{\\le R}(r)=\\sum_i \\mathbf{1}\\{d_i\\le R\\}'},
+  rings: {label:'Multianillo', invert:false, desc:'Conteo ponderado por anillos concéntricos (R_0=0<R_1<…<R_m).',
+          latex: 'I_{\\text{rings}}(r)=\\sum_{j=1}^{m} w_j\\cdot\\#\\{i: R_{j-1}<d_i\\le R_j\\}'},
+};
+
+
+
+
+function computeMetricsFromDists(dists, params){
+  const sExp   = dists.reduce((a,d)=>a+Math.exp(-d/params.sigmaExp),0);
+  const sGauss = dists.reduce((a,d)=>a+Math.exp(-(d*d)/(2*params.sigmaGauss*params.sigmaGauss)),0);
+
+  // Gravity light en km, con ε=0.01 km para evitar singularidad
+  const sPow = dists.reduce((a,d)=> {
+    const dk = d/1000;
+    return a + 1/Math.pow(dk + 0.01, params.alpha);
+  }, 0);
+
+  // IDW acotado normalizado: suma (R/d)^β dentro de R
+  const R = params.R;
+  const sIDW = dists
+    .filter(d=>d<=R)
+    .reduce((a,d)=> a + Math.pow(R/Math.max(d,1), params.beta), 0);
+
+  const sorted = [...dists].sort((a,b)=>a-b);
+  const kIdx   = Math.max(0, Math.min(params.k-1, sorted.length-1));
+  const meanK  = sorted.length? sorted.slice(0, kIdx+1).reduce((a,d)=>a+d,0)/(kIdx+1) : NaN;
+  const kRad   = sorted.length? sorted[kIdx] : NaN;
+  const cntR   = dists.filter(d=>d<=R).length;
+
+  // Multianillo ponderado
+  let ringScore = 0;
+  for (let j=0;j<params.rings.length;j++){
+    const low = j===0? 0 : params.rings[j-1];
+    const high= params.rings[j];
+    const w   = params.weights[j] ?? 0;
+    const nIn = dists.filter(d=>d>low && d<=high).length;
+    ringScore += w * nIn;
+  }
+  return {exp:sExp, gauss:sGauss, pow:sPow, idw:sIDW, knnmean:meanK, krad:kRad, countR:cntR, rings:ringScore};
+}
+
+
+  function colorForValue(v, vmin, vmax, invert=false){
+    if (!isFinite(v)) return '#e5e7eb';
+    let t = (v - vmin) / Math.max(1e-9, (vmax - vmin));
+    t = clamp(t, 0, 1);
+    if (invert) t = 1 - t; // valores bajos = peor ⇒ color más intenso
+    // Escala azul -> roja suave (OK para daltónicos: luminancia +)
+    const r = Math.round(255 * t);
+    const g = Math.round(200 * (1 - t) + 55 * t);
+    const b = Math.round(255 * (1 - t));
+    return `rgb(${r},${g},${b})`;
+  }
+
+  // =================== UI & render ===================
+  const els = {
+    openBtn: document.getElementById('openRiskModalBtn'),
+    backdrop: document.getElementById('riskModalBackdrop'),
+    modal: document.getElementById('riskModal'),
+    close: document.getElementById('closeRiskModal'),
+    metric: document.getElementById('metricSelect'),
+    cat: document.getElementById('catSelect'),
+    yearFrom: document.getElementById('yearFrom'),
+    yearTo: document.getElementById('yearTo'),
+    sigmaExp: document.getElementById('paramSigmaExp'),
+    sigmaGauss: document.getElementById('paramSigmaGauss'),
+    alpha: document.getElementById('paramAlpha'),
+    beta: document.getElementById('paramBeta'),
+    R: document.getElementById('paramR'),
+    k: document.getElementById('paramK'),
+    rings: document.getElementById('paramRings'),
+    weights: document.getElementById('paramWeights'),
+    topN: document.getElementById('paramTopN'),
+    recalc: document.getElementById('recalcBtn'),
+    dlCsv: document.getElementById('dlCsvBtn'),
+    tbody: document.querySelector('#riskTable tbody'),
+    barTitle: document.getElementById('barTitle'),
+    lineTitle: document.getElementById('lineTitle'),
+    barCanvas: document.getElementById('barChart'),
+    lineCanvas: document.getElementById('lineChart'),
+    desc: document.getElementById('metricDesc'),
+    toggleAdv: document.getElementById('toggleAdv'),
+    advBox: document.getElementById('advBox'),
+	aggMode: document.getElementById('aggMode'),
+riskSelect: document.getElementById('riskSelect'),
+
+  };
+
+  let globalData = extractData();
+  const allYears = {min: globalData.minYear, max: globalData.maxYear};
+
+
+
+
+
+// Texto que aparece dentro de #metricDesc bajo la fórmula
+function aggregationExplanationHTML(){
+  const n = Math.max(5, +els.topN.value || 12);
+  const mode = els.aggMode.value;
+  const riskId = els.riskSelect.value;
+
+  // Riesgo individual
+  if (riskId){
+    const risk = filterRisksByCat(globalData.risks, els.cat.value).find(r=>r.id===riskId);
+    const name = risk ? risk.nombre : 'riesgo seleccionado';
+    return `<div class="hint">
+      <b>Evolución anual:</b> mostrando el índice de <b>${name}</b> para cada año,
+      calculado solo con los casos de ese año.
+    </div>`;
+  }
+
+  // Agregada
+  const txt = {
+    sum:      'Evolución anual: <b>Suma total</b> del índice entre todos los puntos de riesgo del filtro. Sube si hay más casos cerca de los riesgos o si están más próximos.',
+    meanRisk: 'Evolución anual: <b>Media por riesgo</b> (suma ÷ nº de riesgos con valor). Útil cuando cambia el nº de riesgos incluidos.',
+    meanCase: 'Evolución anual: <b>Media por caso</b> (suma ÷ nº de casos del año). Controla la cantidad de casos y mide la proximidad media.',
+    sumTopN:  `Evolución anual: <b>Suma Top-${n}</b> del índice de los ${n} riesgos con mayor valor cada año; resalta los focos principales.`
+  }[mode];
+
+  return `<div class="hint">${txt}</div>`;
+}
+
+
+
+
+
+
+
+  // Rellenar selects de años
+  function fillYearSelects(){
+    els.yearFrom.innerHTML=''; els.yearTo.innerHTML='';
+    for (let y=allYears.min; y<=allYears.max; y++){
+      const o1=document.createElement('option'); o1.value=o1.textContent=y; els.yearFrom.appendChild(o1);
+      const o2=document.createElement('option'); o2.value=o2.textContent=y; els.yearTo.appendChild(o2);
+    }
+    els.yearFrom.value = allYears.min;
+    els.yearTo.value   = allYears.max;
+  }
+  fillYearSelects();
+
+  // Charts
+  let barChart=null, lineChart=null;
+  function ensureDestroyed(ch){ if (ch){ ch.destroy(); } }
+
+  function filterCasesByYear(casesPts, yFrom, yTo){
+    return casesPts.filter(p=>{
+      if (!(p.date instanceof Date) || isNaN(p.date)) return false;
+      const y = p.date.getFullYear();
+      return y>=yFrom && y<=yTo;
+    });
+  }
+
+  function filterRisksByCat(risks, cat){
+    if (cat==='all') return risks;
+    return risks.filter(r=>r.cat===cat);
+  }
+
+  function distancesForRisk(risk, cases){
+    return cases.map(c=>haversineMeters(risk.lat,risk.lon,c.lat,c.lon));
+  }
+
+  function computeAll(yFrom, yTo, cat, params){
+    const cases=filterCasesByYear(globalData.casesPts, yFrom, yTo);
+    const risks=filterRisksByCat(globalData.risks, cat);
+    const rows=[];
+    for (const r of risks){
+      const dists = distancesForRisk(r, cases);
+      const m = computeMetricsFromDists(dists, params);
+      const min = dists.length? Math.min(...dists): NaN;
+      rows.push({
+        id: r.id, nombre: r.nombre, cat: r.cat, nCases: dists.length,
+        min: isFinite(min)? Math.round(min): NaN,
+        ...m
+      });
+    }
+    return {rows, casesCount: cases.length, risksCount: risks.length};
+  }
+  
+  
+  function fmtVal(k, v){
+  if (!isFinite(v)) return '—';
+  if (k==='knnmean' || k==='krad') return Math.round(v);        // metros
+  if ((k==='pow' || k==='idw') && v>0 && v<0.01) return v.toExponential(2); // más precisión
+  return Math.round(v*1000)/1000;
+}
+
+  
+  
+  
+
+  function renderTable(rows, metricKey){
+    // ordenar por la métrica (desc si no invertida; asc si invertida)
+    const invert = metricDefs[metricKey].invert;
+    rows.sort((a,b)=>{
+      const va=a[metricKey], vb=b[metricKey];
+      if (!isFinite(va)) return 1;
+      if (!isFinite(vb)) return -1;
+      return invert? va - vb : vb - va;
+    });
+
+    // escala de color sobre la métrica elegida
+    const vals = rows.map(r=>r[metricKey]).filter(x=>isFinite(x));
+    const vmin = vals.length ? Math.min(...vals) : 0;
+    const vmax = vals.length ? Math.max(...vals) : 1;
+
+    els.tbody.innerHTML='';
+    rows.forEach(r=>{
+      const tr=document.createElement('tr');
+      const catBadge = `<span class="badge ${r.cat}">${r.cat}</span>`;
+      tr.innerHTML = `
+        <td title="${r.id}">${r.nombre}</td>
+        <td>${catBadge}</td>
+        <td>${r.nCases}</td>
+        <td>${isFinite(r.min)? Math.round(r.min): '—'}</td>
+        ${['exp','gauss','pow','idw','knnmean','krad','countR','rings'].map(k=>{
+          const v=r[k];
+          const col = colorForValue(v, vmin, vmax, metricDefs[metricKey].invert && k===metricKey);
+          const bg = (k===metricKey && isFinite(v))? `style="background:${col};color:${(metricDefs[metricKey].invert? v<= (vmin+vmax)/2 : v>=(vmin+vmax)/2)?'#fff':'#0f172a'}"` : '';
+const value = fmtVal(k, v);
+          return `<td data-k="${k}"><span class="cell-heat" ${bg}>${value}</span></td>`;
+        }).join('')}
+      `;
+      els.tbody.appendChild(tr);
+    });
+  }
+
+function renderBarChart(rows, metricKey, topN){
+  ensureDestroyed(barChart);
+  const sel = rows.slice(0, topN);
+  els.barTitle.textContent = `Top ${sel.length} riesgos — ${metricDefs[metricKey].label}`;
+
+  barChart = new Chart(els.barCanvas.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: sel.map(r=>r.nombre),
+      datasets: [{
+        label: metricDefs[metricKey].label,
+        data: sel.map(r=>r[metricKey]),
+        maxBarThickness: 18,          // barras finas
+        categoryPercentage: 0.7,
+        barPercentage: 0.9
+      }]
+    },
+    options: {
+      indexAxis: 'y',                 // ← horizontal
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display:false },
+        tooltip: { callbacks: {
+          label: ctx=>{
+            const k=metricKey, v=ctx.parsed.x;
+            const unit = (k==='countR'||k==='rings')?'': (k==='knnmean'||k==='krad')?' m':'';
+            const val = isFinite(v)?(k==='knnmean'||k==='krad'?Math.round(v):Math.round(v*1000)/1000):'—';
+            return `${metricDefs[k].label}: ${val}${unit}`;
+          }
+        }}
+      },
+      scales: {
+        x: { beginAtZero:true, ticks:{ precision:0 } },
+        y: { ticks: { autoSkip:false, maxRotation:0, callback:(v)=>String(v).slice(0,24) } }
+      },
+      layout: { padding: { right: 6 } }
+    }
+  });
+}
+
+
+  function getYearsRange(){ const ys=[]; for(let y=allYears.min;y<=allYears.max;y++) ys.push(y); return ys; }
+
+  function computeAggregateByYear(cat, params, metricKey){
+    const ys = getYearsRange();
+    const out = ys.map(y=>{
+      const {rows} = computeAll(y, y, cat, params);
+      // Suma de la métrica entre riesgos (NaN => 0)
+      const sum = rows.reduce((a,r)=> a + (isFinite(r[metricKey])? r[metricKey] : 0), 0);
+      return {year:y, value: sum};
+    });
+    return out;
+  }
+function renderLineChart(cat, params, metricKey){
+  ensureDestroyed(lineChart);
+
+  const riskId = els.riskSelect.value;
+  let series, title;
+
+  if (riskId){ // evolución de un elemento concreto
+    series = computeRiskSeriesByYear(riskId, cat, params, metricKey);
+    const risk = filterRisksByCat(globalData.risks, cat).find(r=>r.id===riskId);
+    title = `Evolución anual — ${metricDefs[metricKey].label} (${risk ? risk.nombre : 'Riesgo'})`;
+  } else {     // evolución agregada
+    const mode = els.aggMode.value;
+    series = computeSeriesByYear(mode, cat, params, metricKey, Math.max(5, +els.topN.value||12));
+    const modeLabel = {
+      sum:'Suma total',
+      meanRisk:'Media por riesgo',
+      meanCase:'Media por caso',
+      sumTopN:`Suma Top-${Math.max(5, +els.topN.value||12)}`
+    }[mode];
+    title = `Evolución anual — ${metricDefs[metricKey].label} (${modeLabel})`;
+  }
+
+  els.lineTitle.textContent = title;
+
+  lineChart = new Chart(els.lineCanvas.getContext('2d'), {
+    type:'line',
+    data:{
+      labels: series.map(d=>d.year),
+      datasets:[{ data: series.map(d=>d.value), tension:0.2, pointRadius:2, borderWidth:2 }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{ y:{ beginAtZero:true, ticks:{ precision:0 } } }
+    }
+  });
+}
+
+
+
+  function paramsFromUI(){
+    return {
+      sigmaExp: parseFloat(els.sigmaExp.value)||400,
+      sigmaGauss: parseFloat(els.sigmaGauss.value)||300,
+      alpha: parseFloat(els.alpha.value)||2,
+      beta: parseFloat(els.beta.value)||1.5,
+      R: parseFloat(els.R.value)||400,
+      k: Math.max(1, Math.round(parseFloat(els.k.value)||5)),
+      rings: parseRings(els.rings.value||'100,200,400,800'),
+      weights: parseWeights(els.weights.value||'1,0.7,0.4,0.2')
+    };
+  }
+  
+  
+  // Mensajes por modo de agregación
+const aggText = {
+  sum: 'Suma total del índice entre todos los puntos de riesgo del filtro. Sube si hay más casos cerca de los riesgos o si están más próximos.',
+  meanRisk: 'Media del índice por punto de riesgo (suma ÷ nº de riesgos con valor). Útil cuando cambia el número de riesgos incluidos.',
+  meanCase: 'Media del índice por caso (suma ÷ nº de casos del año). Controla los cambios en la cantidad de casos; mide la proximidad media.',
+  sumTopN: n => `Suma del índice de los ${n} riesgos con mayor valor ese año; resalta los focos principales.`
+};
+
+function updateAggHint(){
+}// borrar cuando puenda todas las referencias a AggHint
+
+  
+  
+  // Rellena el selector de riesgos según la categoría actual
+function fillRiskSelect(cat){
+  const risks = filterRisksByCat(globalData.risks, cat);
+  const sel = els.riskSelect;
+  const current = sel.value;
+  sel.innerHTML = '<option value="">— Todos —</option>';
+  risks
+    .slice().sort((a,b)=>a.nombre.localeCompare(b.nombre))
+    .forEach(r=>{
+      const o=document.createElement('option');
+      o.value=r.id; o.textContent=r.nombre;
+      sel.appendChild(o);
+    });
+  // intenta mantener la selección previa
+ if ([...sel.options].some(o=>o.value===current)) sel.value = current;
+
+}
+
+// Serie anual agregada con distintos modos
+function computeSeriesByYear(aggMode, cat, params, metricKey, topN){
+  const ys = getYearsRange();
+  const invert = metricDefs[metricKey].invert;
+  return ys.map(y=>{
+    const {rows, casesCount} = computeAll(y, y, cat, params);
+    const finite = rows.filter(r=>isFinite(r[metricKey]));
+    let value = 0;
+
+    if (aggMode==='sum'){
+      value = finite.reduce((a,r)=>a+r[metricKey], 0);
+    } else if (aggMode==='meanRisk'){
+      value = finite.length ? finite.reduce((a,r)=>a+r[metricKey], 0) / finite.length : NaN;
+    } else if (aggMode==='meanCase'){
+      const sum = finite.reduce((a,r)=>a+r[metricKey], 0);
+      value = casesCount ? sum / casesCount : NaN;
+    } else if (aggMode==='sumTopN'){
+      const sorted = finite.sort((a,b)=> invert ? a[metricKey]-b[metricKey] : b[metricKey]-a[metricKey]);
+      value = sorted.slice(0, Math.min(topN, sorted.length)).reduce((a,r)=>a+r[metricKey], 0);
+    }
+    return {year:y, value};
+  });
+}
+
+// Serie anual para un único riesgo (por id)
+function computeRiskSeriesByYear(riskId, cat, params, metricKey){
+  const ys = getYearsRange();
+  const risk = filterRisksByCat(globalData.risks, cat).find(r=>r.id===riskId);
+  if (!risk) return ys.map(y=>({year:y, value:NaN}));
+
+  return ys.map(y=>{
+    const cases = filterCasesByYear(globalData.casesPts, y, y);
+    const dists = distancesForRisk(risk, cases);
+    if (!dists.length) return {year:y, value:NaN};
+    const m = computeMetricsFromDists(dists, params);
+    return {year:y, value: m[metricKey]};
+  });
+}
+
+  
+  
+function metricDescription(key){
+  const m = metricDefs[key];
+  const interp = m.invert
+    ? 'Valores <b>más bajos</b> indican mayor proximidad/riesgo.'
+    : 'Valores <b>más altos</b> indican mayor proximidad/riesgo.';
+  const unitsHint = `
+    <div class="hint">
+      Convenciones: $d_i$ distancia caso–riesgo en <b>metros</b>;
+      $\\sigma$ en m; $R$ en m; $\\alpha,\\beta$ adimensionales;
+      en <i>Gravity</i> usamos $d_i/1000$ (km) y $\\epsilon=0.01\\,$km.
+    </div>`;
+  return `
+    <b>${m.label}</b> — ${m.desc}
+    <div class="math">\\[ ${m.latex} \\]</div>
+    <i>Interpretación:</i> ${interp}
+    ${unitsHint}
+  `;
+}
+
+// helper para lanzar el render de MathJax solo en el nodo que cambia
+
+function typesetMath(targetEl){
+  // si ya está listo:
+  if (window.MathJax && MathJax.typesetPromise) {
+    MathJax.typesetPromise([targetEl]).catch(()=>{});
+    return;
+  }
+  // si aún no ha cargado, tipografiar cuando cargue
+  const s = document.getElementById('MathJax-script');
+  if (s) {
+    s.addEventListener('load', () => {
+      MathJax.typesetPromise([targetEl]).catch(()=>{});
+    }, { once:true });
+  }
+}
+
+
+  function downloadCSV(rows){
+    if (!rows.length) { alert('No hay filas para exportar.'); return; }
+    const headers = ['id','nombre','cat','nCases','min','exp','gauss','pow','idw','knnmean','krad','countR','rings'];
+    const esc=v=>`"${String(v??'').replaceAll('"','""')}"`;
+    const csv=[headers.join(','), ...rows.map(r=>headers.map(h=>esc(r[h])).join(','))].join('\n');
+    const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='metricas_riesgo.csv'; a.click();
+    URL.revokeObjectURL(a.href);
+  }
+  
+  
+  const AUTO_TUNE = true; // pon a false si no lo quieres
+
+function percentile(arr, p){
+  if (!arr.length) return NaN;
+  const a=[...arr].sort((x,y)=>x-y);
+  const idx=(a.length-1)*p, lo=Math.floor(idx), hi=Math.ceil(idx);
+  return lo===hi ? a[lo] : a[lo] + (a[hi]-a[lo])*(idx-lo);
+}
+
+function suggestParamsByData(yFrom, yTo, cat){
+  const cases = filterCasesByYear(globalData.casesPts, yFrom, yTo);
+  const risks = filterRisksByCat(globalData.risks, cat);
+  const mins=[], nCasesArr=[];
+  for (const r of risks){
+    const dists = distancesForRisk(r, cases);
+    if (dists.length){ mins.push(Math.min(...dists)); nCasesArr.push(dists.length); }
+  }
+  if (!mins.length) return null;
+  const R = Math.round(percentile(mins, 0.80)); // P80 de d_min
+  const sigma = Math.round(R/2);
+  const k = Math.max(1, Math.min(5, Math.round(percentile(nCasesArr,0.5)*0.75) || 3));
+  return {
+    sigmaExp: sigma, sigmaGauss: sigma,
+    R, k,
+    // mantiene alpha/beta de la UI
+    rings: [Math.round(0.35*R), Math.round(0.7*R), R, Math.round(1.5*R)],
+    weights: [1, 0.7, 0.4, 0.2]
+  };
+}
+
+function applyParamsToUI(p){
+  if (!p) return;
+  els.sigmaExp.value = p.sigmaExp;
+  els.sigmaGauss.value = p.sigmaGauss;
+  els.R.value = p.R;
+  els.k.value = p.k;
+  els.rings.value = p.rings.join(',');
+  els.weights.value = p.weights.join(',');
+}
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+function recalcAndRender(){
+  const yFrom = +els.yearFrom.value, yTo = +els.yearTo.value;
+  if (yFrom > yTo){ alert('Rango de años inválido'); return; }
+  const cat = els.cat.value;
+
+  if (AUTO_TUNE){
+    const suggested = suggestParamsByData(yFrom, yTo, cat);
+    if (suggested) applyParamsToUI(suggested);
+  }
+
+  fillRiskSelect(cat);
+
+  const key    = els.metric.value;
+  const params = paramsFromUI();
+
+  const {rows} = computeAll(yFrom, yTo, cat, params);
+  renderTable(rows, key);
+  renderBarChart(rows, key, Math.max(5, Math.min(+els.topN.value||12, rows.length)));
+  renderLineChart(cat, params, key);
+
+ els.desc.innerHTML =
+  metricDescription(key) +
+  aggregationExplanationHTML() +
+  `<div class="hint">Rango ${yFrom}–${yTo}. Casos incluidos: filtrados por fecha.</div>`;
+typesetMath(els.desc);
+
+
+  currentRows = rows;
+}
+
+
+
+
+  // =================== Modal wiring ===================
+  let currentRows=[];
+function openModal(){
+  els.backdrop.style.display='block'; els.modal.style.display='block';
+  fillRiskSelect(els.cat.value);
+  recalcAndRender();
+}
+  function closeModal(){ els.backdrop.style.display='none'; els.modal.style.display='none'; }
+
+  // Helper para no romper si falta algún nodo
+const on = (el, ev, fn) => el && el.addEventListener(ev, fn);
+
+// Abrir / cerrar modal
+on(els.openBtn, 'click', openModal);
+on(els.close, 'click', closeModal);
+on(els.backdrop, 'click', closeModal);
+
+// Recalcular (atajo)
+const recalc = () => recalcAndRender();
+
+// Selectores principales
+on(els.metric, 'change', recalc);
+on(els.aggMode, 'change', recalc);
+on(els.riskSelect, 'change', recalc);
+
+// Cambiar categoría ⇒ refrescar lista de riesgos y recalcular
+on(els.cat, 'change', () => { fillRiskSelect(els.cat.value); recalc(); });
+
+// Rango de años
+on(els.yearFrom, 'change', recalc);
+on(els.yearTo,   'change', recalc);
+
+// Parámetros numéricos y avanzados
+['sigmaExp','sigmaGauss','alpha','beta','R','k','rings','weights','topN']
+  .forEach(id => on(els[id], 'change', recalc));
+
+// Botones extra
+on(els.recalc, 'click', recalc); // si mantienes el botón
+on(els.dlCsv, 'click', () => downloadCSV(currentRows));
+on(els.toggleAdv, 'click', () => {
+  const hidden = getComputedStyle(els.advBox).display === 'none';
+  els.advBox.style.display = hidden ? 'grid' : 'none';
+});
+
+
+  // Inicializa por si el usuario abre más tarde
+  window.addEventListener('keydown', (e)=>{ if (e.key==='Escape') closeModal(); });
+
+})();
+
+
+
+// === Scroll robusto dentro del modal hasta #charts ===
+function scrollToSectionInModal(modalEl, targetEl, extraOffset=8){
+  if (!modalEl || !targetEl) return;
+
+  // Altura del header sticky del modal para no tapar el ancla
+  const headerH = modalEl.querySelector('header')?.offsetHeight || 0;
+
+  // Offset absoluto del target respecto al contenedor que hace scroll (#riskModal)
+  let y = 0, el = targetEl;
+  while (el && el !== modalEl) {
+    y += el.offsetTop;
+    el = el.offsetParent;
+  }
+
+  const top = Math.max(0, y - headerH - extraOffset);
+  modalEl.scrollTo({ top, behavior: 'smooth' });
+  
+  // (opcional) resaltado visual
+  targetEl.classList?.add('flash-highlight');
+  setTimeout(()=>targetEl.classList?.remove('flash-highlight'), 1100);
+}
+
+// Botón "Gráficos" con id="graficos"
+document.getElementById('graficos')?.addEventListener('click', (e)=>{
+  e.preventDefault();
+  const modal  = document.getElementById('riskModal');
+  const target = document.getElementById('charts');        // o 'graficos' si lo renombraras
+  scrollToSectionInModal(modal, target);
+});
+
+
+
+  window.MathJax = {
+    tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$','$$'], ['\\[','\\]']] },
+    svg: { fontCache: 'global' }
+  };
+
+
+
+
+
+</script>
+
+
+
+
+</body>
+</html>
