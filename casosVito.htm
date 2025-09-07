@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+	
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Legionelosis · 3D + riesgos + buscadores</title>
+	<meta name="author" content="Oscar Unzueta Salazar" />
+<title>Casos Legio Vitoria</title>
 
 <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet">
 <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
@@ -2055,7 +2057,7 @@ function initRiskLayers(){
   const refreshAll  = ()=>{ all.checked = cbs.fuentes.checked && cbs.lavacoches.checked && cbs.torres.checked; };
   const update = ()=>{
     const fc = riskFeatures(currentCats());
-    map.getSource('risk').setData(fc);       // ⬅️ no toca capas → no hay “already exists”
+    map.getSource('risk').setData(fc);       //  no toca capas  no hay “already exists”
     populateRiskIndexAndDatalist(fc);
     refreshAll();
   };
@@ -2287,7 +2289,7 @@ function computeMetricsFromDists(dists, params){
     let t = (v - vmin) / Math.max(1e-9, (vmax - vmin));
     t = clamp(t, 0, 1);
     if (invert) t = 1 - t; // valores bajos = peor ⇒ color más intenso
-    // Escala azul -> roja suave (OK para daltónicos: luminancia +)
+    // Escala azul -> roja suave 
     const r = Math.round(255 * t);
     const g = Math.round(200 * (1 - t) + 55 * t);
     const b = Math.round(255 * (1 - t));
@@ -2484,7 +2486,7 @@ function renderBarChart(rows, metricKey, topN){
       }]
     },
     options: {
-      indexAxis: 'y',                 // ← horizontal
+      indexAxis: 'y',                 // horizontal
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
@@ -2694,7 +2696,7 @@ function typesetMath(targetEl){
   }
   
   
-  const AUTO_TUNE = true; // pon a false si no lo quieres
+  const AUTO_TUNE = true; // cambiar?
 
 function percentile(arr, p){
   if (!arr.length) return NaN;
@@ -2814,7 +2816,7 @@ on(els.yearTo,   'change', recalc);
   .forEach(id => on(els[id], 'change', recalc));
 
 // Botones extra
-on(els.recalc, 'click', recalc); // si mantienes el botón
+on(els.recalc, 'click', recalc); // quitar?
 on(els.dlCsv, 'click', () => downloadCSV(currentRows));
 on(els.toggleAdv, 'click', () => {
   const hidden = getComputedStyle(els.advBox).display === 'none';
@@ -2855,7 +2857,7 @@ function scrollToSectionInModal(modalEl, targetEl, extraOffset=8){
 document.getElementById('graficos')?.addEventListener('click', (e)=>{
   e.preventDefault();
   const modal  = document.getElementById('riskModal');
-  const target = document.getElementById('charts');        // o 'graficos' si lo renombraras
+  const target = document.getElementById('charts');      
   scrollToSectionInModal(modal, target);
 });
 
@@ -2877,3 +2879,4 @@ document.getElementById('graficos')?.addEventListener('click', (e)=>{
 
 </body>
 </html>
+
