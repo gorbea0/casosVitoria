@@ -174,6 +174,7 @@
 
     <div class="sec">🔎 Buscar calle/dirección</div>
     <div class="row"><input id="q" type="text" placeholder="C/ …, Vitoria"><button class="btn" id="go">Buscar</button></div>
+    <div class="row tip" id="searchInfo" style="display:none"><span id="searchCoords"></span></div>
   </div>
 </div>
 
@@ -206,7 +207,7 @@
     <div class="row"><label><input id="chkAll" type="checkbox"> Todos los casos</label></div>
     <div class="row"><label><input id="chkLines" type="checkbox" checked> Conectar puntos</label></div>
     <div id="yearsWrap"><div id="years"></div></div>
-    <div class="tip">Popup: ID · fecha · contagio aprox. (−15 días). Radio: 400 m.</div>
+    <div class="tip">Popup: ID · fecha · contagio aprox. (−15 días). Radio: 500 m.</div>
   </div>
 </div>
 
@@ -564,7 +565,26 @@ window.CASES_JSON = [
       ["42.845910402282,-2.6716079049629", "ocio"]
     ]
   }
+  ,
+  
+    {
+    "id": "C-12515",
+    "date": "30-11-2025",
+    "points": [
+      ["42.858277, -2.678556", "Casa"],
+      ["42.87437101273808, -2.681500707118906", "ocio"]
+    ]
+  }
+  
+  
+  
+  
 ];
+
+
+
+
+
 
 
 // ======== Puntos de riesgo  =========
@@ -2062,7 +2082,7 @@ map.on('load', async ()=>{
       casesBounds.extend(p.ll);
 
       const cid=`circle-${c.id}-${idx}`;
-      const circ = circlePolygon(p.ll,400,64);
+      const circ = circlePolygon(p.ll,500,64);
       map.addSource(cid,{type:'geojson',data:circ});
       map.addLayer({id:cid,    type:'fill', source:cid, paint:{'fill-color':'#f59e0b','fill-opacity':.16}});
       map.addLayer({id:cid+'-s',type:'line', source:cid, paint:{'line-color':'#b45309','line-width':2,'line-opacity':.4}});
@@ -2120,12 +2140,93 @@ async function geocode(q){
   }catch(_){}
   return null;
 }
+  // ===== Buscador de calles: marcador + círculo + coords =====
+  const SEARCH_CIRCLE_RADIUS_M = 500;
+  let searchMarker = null;
+
+  function ensureSearchLayers(){
+    if (!map.getSource('search-circle')){
+      map.addSource('search-circle',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
+      map.addLayer({
+        id:'search-circle-fill',
+        type:'fill',
+        source:'search-circle',
+        paint:{'fill-color':'#2563eb','fill-opacity':0.12}
+      });
+      map.addLayer({
+        id:'search-circle-line',
+        type:'line',
+        source:'search-circle',
+        paint:{'line-color':'#1d4ed8','line-width':2,'line-opacity':0.55}
+      });
+    }
+  }
+
+  function setSearchResult(lng, lat){
+    const ll = [lng,lat];
+
+    // marcador
+    if (!searchMarker){
+      const el=document.createElement('div');
+      el.style.width='14px'; el.style.height='14px';
+      el.style.borderRadius='50%';
+      el.style.background='#1d4ed8';
+      el.style.boxShadow='0 0 0 3px rgba(29,78,216,.25)';
+      searchMarker = new maplibregl.Marker({element:el}).setLngLat(ll).addTo(map);
+    } else {
+      searchMarker.setLngLat(ll);
+    }
+
+    // círculo
+    ensureSearchLayers();
+    const circ = circlePolygon(ll, SEARCH_CIRCLE_RADIUS_M, 64);
+    map.getSource('search-circle').setData(circ);
+
+    // coords en panel
+    const info = document.getElementById('searchInfo');
+    const out  = document.getElementById('searchCoords');
+    if (out){
+      out.textContent = `📍 Coordenadas: ${lat.toFixed(6)}, ${lng.toFixed(6)}  (radio ${SEARCH_CIRCLE_RADIUS_M} m)`;
+    }
+    if (info) info.style.display = 'flex';
+  }
+
+  function centerFromFeature(f){
+    // Prioridad: geometry (Point). Si no, centro del bbox.
+    if (f?.geometry?.type === 'Point' && Array.isArray(f.geometry.coordinates)){
+      const [lng,lat] = f.geometry.coordinates;
+      return {lng:+lng, lat:+lat};
+    }
+    if (f?.bbox?.length===4){
+      const [minx,miny,maxx,maxy]=f.bbox;
+      return {lng:(minx+maxx)/2, lat:(miny+maxy)/2};
+    }
+    if (f?.properties?.boundingbox){
+      const [south,north,west,east]=f.properties.boundingbox.map(parseFloat);
+      return {lng:(west+east)/2, lat:(south+north)/2};
+    }
+    return null;
+  }
+
 async function doSearch(){
   const q=document.getElementById('q').value.trim(); if(!q) return;
   const f=await geocode(q); if(!f) return alert('No encontrado');
-  if (f.bbox?.length===4){ const [minx,miny,maxx,maxy]=f.bbox; map.fitBounds([[minx,miny],[maxx,maxy]],{padding:40}); }
-  else if (f.properties?.boundingbox){ const [south,north,west,east]=f.properties.boundingbox.map(parseFloat); map.fitBounds([[west,south],[east,north]],{padding:40}); }
-  else { const [lng,lat]=f.geometry.coordinates; map.flyTo({center:[lng,lat],zoom:17,speed:.6}); }
+
+  // centra
+  if (f.bbox?.length===4){
+    const [minx,miny,maxx,maxy]=f.bbox;
+    map.fitBounds([[minx,miny],[maxx,maxy]],{padding:40});
+  } else if (f.properties?.boundingbox){
+    const [south,north,west,east]=f.properties.boundingbox.map(parseFloat);
+    map.fitBounds([[west,south],[east,north]],{padding:40});
+  } else {
+    const [lng,lat]=f.geometry.coordinates;
+    map.flyTo({center:[lng,lat],zoom:17,speed:.6});
+  }
+
+  // pinta círculo + coords (usa centro del resultado)
+  const c = centerFromFeature(f);
+  if (c) setSearchResult(c.lng, c.lat);
 }
 document.getElementById('go').onclick = doSearch;
 document.getElementById('q').addEventListener('keydown',e=>{ if(e.key==='Enter') doSearch(); });
@@ -3309,6 +3410,13 @@ document.getElementById('graficos')?.addEventListener('click', (e)=>{
 
 </body>
 </html>
+
+
+
+
+
+
+
 
 
 
